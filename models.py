@@ -64,6 +64,8 @@ class NetworkModelManager:
 
     def save_history(self):
         import json
+
+
         json.dump(self.history, open(self.history_path, 'w'))
 
     def update_curr_epoch(self):
