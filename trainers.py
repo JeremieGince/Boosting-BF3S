@@ -19,7 +19,6 @@ class Trainer:
             }
         self.BATCH_SIZE = kwargs.get("batch_size", 256)
         self.IMG_SIZE = kwargs.get("img_size", 80)
-        self.FUSION_DEPTH = kwargs.get("fusion_depth", 128)
         self.modelManager = model_manager
         self.model = model_manager.model
         self.dataset: DatasetPhase = dataset
