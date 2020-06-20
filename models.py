@@ -1,14 +1,10 @@
 import os
-from abc import ABC
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import backend as Kbackend
-from tensorflow.keras.initializers import GlorotNormal
-from tensorflow.keras.layers import Conv2D, Input, Reshape, RepeatVector, concatenate, \
-    UpSampling2D, Flatten, Dense, BatchNormalization, Softmax, ReLU
-from tensorflow.keras.models import Model, Sequential
-from tensorflow.keras.optimizers import Adam, SGD
+from tensorflow.keras.layers import Flatten, Dense, BatchNormalization, Softmax, ReLU
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import SGD
 
 import util
 from hyperparameters import *
@@ -17,7 +13,6 @@ os.environ["PATH"] += os.pathsep + r'C:\Program Files (x86)\Graphviz2.38\bin/'
 
 
 class NetworkModelManager:
-
     available_backbones = {
         "InceptionResNetV2": tf.keras.applications.InceptionResNetV2,
         "InceptionV3": tf.keras.applications.InceptionV3,
@@ -64,7 +59,6 @@ class NetworkModelManager:
 
     def save_history(self):
         import json
-
 
         json.dump(self.history, open(self.history_path, 'w'))
 
@@ -125,7 +119,6 @@ class NetworkManagerCallback(tf.keras.callbacks.Callback):
 
 
 class SelfLearnerWithImgRotation(NetworkModelManager):
-
     default_backbone = "InceptionResNetV2"
 
     def __init__(self, **kwargs):
@@ -191,7 +184,6 @@ class SelfLearnerWithImgRotation(NetworkModelManager):
 
 
 class FewShotImgLearner(NetworkModelManager):
-
     default_backbone = "InceptionResNetV2"
 
     def __init__(self, **kwargs):

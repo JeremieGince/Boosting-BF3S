@@ -1,19 +1,16 @@
-import os
 import enum
-import gin
+import os
+
 import matplotlib.pyplot as plt
+import numpy as np
 import tensorflow as tf
 from PIL import ImageFile
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-import numpy as np
 from scipy import ndimage
-from skimage.transform import resize
 
-import hyperparameters
 import util
-from util import OutputForm
 from hyperparameters import SEED
 from user_constants import MINIIMAGETNET_DIR
+from util import OutputForm
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 

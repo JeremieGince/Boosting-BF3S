@@ -1,9 +1,7 @@
-from models import NetworkModelManager, NetworkManagerCallback
-from datasets import DatasetPhase
 import tensorflow as tf
-from tensorflow.keras.utils import plot_model
-import matplotlib.pyplot as plt
-import os
+
+from datasets import DatasetPhase
+from models import NetworkModelManager, NetworkManagerCallback
 
 
 class Trainer:
@@ -33,10 +31,10 @@ class Trainer:
             self.modelManager.load()
         history = self.model.fit(
             self.dataset.get_generator(DatasetPhase.TRAIN, self.modelManager.output_form),
-            steps_per_epoch=self.dataset.train_length//self.dataset.batch_size,
+            steps_per_epoch=self.dataset.train_length // self.dataset.batch_size,
             epochs=epochs,
             validation_data=self.dataset.get_generator(DatasetPhase.VAL, self.modelManager.output_form),
-            validation_steps=self.dataset.val_length//self.dataset.batch_size,
+            validation_steps=self.dataset.val_length // self.dataset.batch_size,
             callbacks=[self.network_callback] if self.use_saving_callback else [],
             verbose=self.verbose,
             initial_epoch=self.modelManager.current_epoch,
@@ -49,7 +47,6 @@ if __name__ == '__main__':
     from datasets import MiniImageNetDataset, OutputForm
     from models import SelfLearnerWithImgRotation
     from hyperparameters import *
-    import util
     import time
 
     # -----------------------------------------------------------------------------------------------------------------
@@ -83,4 +80,3 @@ if __name__ == '__main__':
     self_trainer.train(epochs=5)
     end_feature_training_time = time.time() - start_time
     print(f"--- Elapse feature training time: {end_feature_training_time} [s] ---")
-
