@@ -66,16 +66,17 @@ class NetworkModelManager:
         self.current_epoch = len(self.history.get("loss", []))
 
     def update_history(self, other: dict):
-        # TODO: Make sure is always serializable
         temp = {**self.history, **other}
         for key, value in temp.items():
             if key in self.history and key in other:
                 if isinstance(value, list):
-                    temp[key] = np.array(self.history[key] + value, dtype=float)
+                    temp[key] = list(np.array(self.history[key] + value, dtype=float))
                 elif isinstance(value, np.ndarray):
-                    temp[key] = np.array(list(self.history[key]) + list(value), dtype=float)
+                    temp[key] = list(np.array(list(self.history[key]) + list(value), dtype=float))
                 else:
-                    temp[key] = np.array([self.history[key], value], dtype=float)
+                    temp[key] = list(np.array([self.history[key], value], dtype=float))
+            else:
+                temp[key] = list(value)
 
         self.history = temp
         self.save_history()
@@ -239,9 +240,12 @@ class FewShotImgLearner(NetworkModelManager):
 
 
 if __name__ == '__main__':
-    for backbone in SelfLearnerWithImgRotation.available_backbones:
-        self_learner = SelfLearnerWithImgRotation(backbone=backbone)
-        self_learner.build_and_compile()
-        self_learner.summary()
+    self_learner = SelfLearnerWithImgRotation()
+    self_learner.build_and_compile()
+    self_learner.summary()
 
-        del self_learner
+    self_learner.update_history({"loss": [0.16546546874, ], "accuracy": np.array([0.156496848, ])})
+    self_learner.save_history()
+    self_learner.load_history()
+    print(self_learner.history)
+
