@@ -1,13 +1,47 @@
 import enum
 
 
+def plotHistory(history: dict, **kwargs):
+    import matplotlib.pyplot as plt
+    # print(history.keys())
+    acc = history['accuracy']
+    val_acc = history.get('val_accuracy')
+
+    loss = history['loss']
+    val_loss = history.get('val_loss')
+
+    epochs_range = range(1, len(acc)+1)
+
+    plt.figure(figsize=(8, 8))
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, acc, label='Training Accuracy')
+    if val_acc is not None:
+        plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    plt.legend(loc='lower right')
+    plt.title(f'Training {"and Validation" if val_acc is not None else ""} Accuracy')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, loss, label='Training Loss')
+    if val_loss is not None:
+        plt.plot(epochs_range, val_loss, label='Validation Loss')
+    plt.legend(loc='upper right')
+    plt.title(f'Training {"and Validation" if val_loss is not None else ""} Loss')
+
+    if kwargs.get("savefig", True):
+        plt.savefig(f"Figures/{kwargs.get('savename', 'training_curve')}.png", dpi=500)
+    plt.show()
+
+
 def load_pickle_data(file):
     import pickle
 
     with open(file, "rb") as fo:
         data = pickle.load(fo, encoding="bytes")
-        if isinstance(data, dict):
-            data = {k.decode("ascii"): v for k, v in data.items()}
+        try:
+            if isinstance(data, dict):
+                data = {k.decode("ascii"): v for k, v in data.items()}
+        except:
+            pass
 
     return data
 
@@ -87,6 +121,28 @@ def c_idx2one_hot(idx, arr):
     return arr
 
 
+class TrainingPhase(enum.Enum):
+    TRAIN = "train"
+    VAL = "val"
+    TEST = "test"
+
+
 class OutputForm(enum.Enum):
     LABEL = 0
     ROT = 1
+
+
+def calc_euclidian_dists(x, y):
+    import tensorflow as tf
+    """
+    Calculate euclidian distance between two 3D tensors.
+    Args:
+        x (tf.Tensor):
+        y (tf.Tensor):
+    Returns (tf.Tensor): 2-dim tensor with distances.
+    """
+    n = x.shape[0]
+    m = y.shape[0]
+    x = tf.tile(tf.expand_dims(x, 1), [1, m, 1])
+    y = tf.tile(tf.expand_dims(y, 0), [n, 1, 1])
+    return tf.reduce_mean(tf.math.pow(x - y, 2), 2)
