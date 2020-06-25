@@ -2,6 +2,7 @@ import enum
 
 
 def plotHistory(history: dict, **kwargs):
+    import os
     import matplotlib.pyplot as plt
     # print(history.keys())
     acc = history['accuracy']
@@ -28,6 +29,7 @@ def plotHistory(history: dict, **kwargs):
     plt.title(f'Training {"and Validation" if val_loss is not None else ""} Loss')
 
     if kwargs.get("savefig", True):
+        os.makedirs("Figures/", exist_ok=True)
         plt.savefig(f"Figures/{kwargs.get('savename', 'training_curve')}.png", dpi=500)
     plt.show()
 
