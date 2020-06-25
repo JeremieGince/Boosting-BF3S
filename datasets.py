@@ -6,21 +6,16 @@ import numpy as np
 import tensorflow as tf
 from PIL import ImageFile
 from scipy import ndimage
+import warnings
 
 import util
 from hyperparameters import SEED
 from user_constants import MINIIMAGETNET_DIR
-from util import OutputForm
+from util import OutputForm, TrainingPhase
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 tf.random.set_seed(SEED)
-
-
-class DatasetPhase(enum.Enum):
-    TRAIN = "train"
-    VAL = "val"
-    TEST = "test"
 
 
 class DatasetBase:
@@ -77,11 +72,16 @@ class DatasetBase:
         elif output_form == OutputForm.ROT:
             return len(self.possible_rotations)
 
-    def get_generator(self, phase: DatasetPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
+    def get_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
         raise NotImplementedError()
 
-    def get_iterator(self, phase: DatasetPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
+    def get_iterator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
         return iter(self.get_generator(phase, output_form, **kwargs))
+
+    def get_few_shot_generator(self, _n_way, _n_shot, _n_query,
+                               phase: TrainingPhase,
+                               **kwargs):
+        warnings.warn("get_few_shot_generator not Implemented yet")
 
     def preprocess_input(self, _input):
         return _input
@@ -103,7 +103,7 @@ class DatasetBase:
     def plot_samples(self, nb_samples=5):
         nb_samples = min(nb_samples, self._batch_size)
 
-        _itr = self.get_iterator(DatasetPhase.TRAIN, OutputForm.LABEL, shuffle=True)
+        _itr = self.get_iterator(TrainingPhase.TRAIN, OutputForm.LABEL, shuffle=True)
 
         (_images, _labels) = next(_itr)
 
@@ -131,44 +131,55 @@ class MiniImageNetDataset(DatasetBase):
 
         self.name = kwargs.get("name", "MiniImageNet Dataset")
 
-        self.file_train_categories_train_phase = os.path.join(
-            data_dir, "miniImageNet_category_split_train_phase_train.pickle"
-        )
-        self.file_train_categories_val_phase = os.path.join(
-            data_dir, "miniImageNet_category_split_train_phase_val.pickle"
-        )
-        self.file_train_categories_test_phase = os.path.join(
-            data_dir, "miniImageNet_category_split_train_phase_test.pickle"
-        )
-        self.file_val_categories_val_phase = os.path.join(
-            data_dir, "miniImageNet_category_split_val.pickle"
-        )
-        self.file_test_categories_test_phase = os.path.join(
-            data_dir, "miniImageNet_category_split_test.pickle"
-        )
+        # self.file_train_categories_train_phase = os.path.join(
+        #     data_dir, "miniImageNet_category_split_train_phase_train.pickle"
+        # )
+        # self.file_train_categories_val_phase = os.path.join(
+        #     data_dir, "miniImageNet_category_split_train_phase_val.pickle"
+        # )
+        # self.file_train_categories_test_phase = os.path.join(
+        #     data_dir, "miniImageNet_category_split_train_phase_test.pickle"
+        # )
+        # self.file_val_categories_val_phase = os.path.join(
+        #     data_dir, "miniImageNet_category_split_val.pickle"
+        # )
+        # self.file_test_categories_test_phase = os.path.join(
+        #     data_dir, "miniImageNet_category_split_test.pickle"
+        # )
+
+        self.train_file = os.path.join(data_dir, "mini-imagenet-cache-train.pkl")
+        self.val_file = os.path.join(data_dir, "mini-imagenet-cache-val.pkl")
+        self.test_file = os.path.join(data_dir, "mini-imagenet-cache-test.pkl")
 
         # TODO: comprendre les phases bizzare de mini-imagenet, genre train-train, val-val, train-val,
         #  train-test, test-test...
 
+        # self.phase_to_file: dict = {
+        #     TrainingPhase.TRAIN: self.file_train_categories_train_phase,
+        #     TrainingPhase.VAL: self.file_val_categories_val_phase,
+        #     TrainingPhase.TEST: self.file_test_categories_test_phase,
+        # }
+
         self.phase_to_file: dict = {
-            DatasetPhase.TRAIN: self.file_train_categories_train_phase,
-            DatasetPhase.VAL: self.file_val_categories_val_phase,
-            DatasetPhase.TEST: self.file_test_categories_test_phase,
+            TrainingPhase.TRAIN: self.train_file,
+            TrainingPhase.VAL: self.val_file,
+            TrainingPhase.TEST: self.test_file,
         }
 
-        self.image_size = kwargs.get("image_size", 80)
+        self.image_size = 84
 
     def preprocess_input(self, _input):
-        return tf.image.resize(_input, (self.image_size, self.image_size))
+        # return tf.image.resize(_input/255, (self.image_size, self.image_size))
+        return _input/255.0
 
-    def get_generator(self, phase: DatasetPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
+    def get_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
         _data = util.load_pickle_data(self.phase_to_file.get(phase))
 
-        if phase == DatasetPhase.TRAIN:
+        if phase == TrainingPhase.TRAIN:
             self._train_length = len(_data["data"])
-        elif phase == DatasetPhase.VAL:
+        elif phase == TrainingPhase.VAL:
             self._val_length = len(_data["data"])
-        elif phase == DatasetPhase.TEST:
+        elif phase == TrainingPhase.TEST:
             self._test_length = len(_data["data"])
 
         self._add_labels(_data["labels"])
@@ -186,7 +197,7 @@ class MiniImageNetDataset(DatasetBase):
 
         _ds = tf.data.Dataset.from_generator(
             _gen,
-            output_types=(tf.int32, tf.int32),
+            output_types=(tf.float32, tf.int32),
             output_shapes=(tf.TensorShape([self.image_size, self.image_size, 3]),
                            tf.TensorShape([self.get_output_size(output_form)])),
         )
@@ -198,16 +209,47 @@ class MiniImageNetDataset(DatasetBase):
 
         return _ds
 
+    def get_few_shot_generator(self, _n_way, _n_shot, _n_query,
+                               phase: TrainingPhase,
+                               **kwargs):
+        _raw_data = util.load_pickle_data(self.phase_to_file.get(phase))
+
+        # Convert original data to format [n_classes, n_img, w, h, c]
+        first_key = list(_raw_data['class_dict'])[0]
+        _data = np.zeros((len(_raw_data['class_dict']), len(_raw_data['class_dict'][first_key]), 84, 84, 3))
+        for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
+            _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
+
+        # print(_data.shape, _data[..., 0])
+        _data = self.preprocess_input(_data)
+        # print(_data.shape, _data[..., 0])
+        n_classes, n_img, _w, _h, _c = _data.shape
+
+        def _gen():
+            while True:
+                support = np.zeros([_n_way, _n_shot, _w, _h, _c], dtype=np.float32)
+                query = np.zeros([_n_way, _n_query, _w, _h, _c], dtype=np.float32)
+                classes_ep = np.random.permutation(n_classes)[:_n_way]
+
+                for _i, i_class in enumerate(classes_ep):
+                    selected = np.random.permutation(n_img)[:_n_shot + _n_query]
+                    support[_i] = _data[i_class, selected[:_n_shot]]
+                    query[_i] = _data[i_class, selected[_n_shot:]]
+
+                yield support, query
+
+        return _gen()
+
     def __iter__(self):
         # TODO: change ça pour pas que ce soit juste train
-        return self.get_generator(DatasetPhase.TRAIN)
+        return self.get_generator(TrainingPhase.TRAIN)
 
 
 if __name__ == '__main__':
     mini_imagenet_dataset = MiniImageNetDataset(batch_size=64)
-    mini_imagenet_dataset.plot_samples()
+    # mini_imagenet_dataset.plot_samples()
+    #
+    # mini_gen = mini_imagenet_dataset.get_generator(phase=TrainingPhase.TRAIN, output_form=OutputForm.ROT, shuffle=True)
+    #
+    # print(mini_gen, iter(mini_gen), next(iter(mini_gen)), sep='\n')
 
-    mini_gen = mini_imagenet_dataset.get_generator(phase=DatasetPhase.TRAIN, output_form=OutputForm.ROT, shuffle=True)
-
-    print(mini_gen)
-    print(iter(mini_gen))
