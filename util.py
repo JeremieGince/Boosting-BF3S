@@ -1,7 +1,7 @@
 import enum
 
 
-def plotHistory(history: dict, **kwargs):
+def plotHistory_old(history: dict, **kwargs):
     import os
     import matplotlib.pyplot as plt
     # print(history.keys())
@@ -13,7 +13,7 @@ def plotHistory(history: dict, **kwargs):
 
     epochs_range = range(1, len(acc)+1)
 
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(12, 12))
     plt.subplot(1, 2, 1)
     plt.plot(epochs_range, acc, label='Training Accuracy')
     if val_acc is not None:
@@ -27,6 +27,36 @@ def plotHistory(history: dict, **kwargs):
         plt.plot(epochs_range, val_loss, label='Validation Loss')
     plt.legend(loc='upper right')
     plt.title(f'Training {"and Validation" if val_loss is not None else ""} Loss')
+
+    if kwargs.get("savefig", True):
+        os.makedirs("Figures/", exist_ok=True)
+        plt.savefig(f"Figures/{kwargs.get('savename', 'training_curve')}.png", dpi=500)
+    plt.show()
+
+
+def plotHistory(history: dict, **kwargs):
+    import os
+    import matplotlib.pyplot as plt
+
+    metrics_to_phases = {
+        _metric_name: {
+            _p: hist_vec
+            for _p in history
+        }
+        for _p in history
+        for _metric_name, hist_vec in history[_p].items()
+    }
+
+    plt.figure(figsize=(12, 12))
+
+    for i, metric_name in enumerate(metrics_to_phases):
+        plt.subplot(1, len(metrics_to_phases.keys()), i+1)
+
+        for _phase, values in metrics_to_phases[metric_name].items():
+            plt.plot(values, label=_phase)
+
+        plt.legend(loc='lower right')
+        plt.title(f'{metric_name}')
 
     if kwargs.get("savefig", True):
         os.makedirs("Figures/", exist_ok=True)
