@@ -27,7 +27,7 @@ class NetworkModelManager:
         "ResNet50V2": tf.keras.applications.ResNet50V2,
         "VGG16": tf.keras.applications.VGG16,
         "VGG19": tf.keras.applications.VGG19,
-        "conv-4-64": backbones.Conv_4_64,
+        "conv-4-64": backbones.conv_4_64,
     }
 
     def __init__(self, **kwargs):
@@ -46,7 +46,11 @@ class NetworkModelManager:
         self.learning_rate = kwargs.get("learning_rate", 1e-3)
         self.momentum = kwargs.get("momentum", CLS_MOMENTUM)
         self.use_nesterov = kwargs.get("use_nesterov", CLS_USE_NESTEROV)
-        self.optimizer = SGD(self.learning_rate, momentum=self.momentum, nesterov=CLS_USE_NESTEROV)
+        self.optimizer_args = kwargs.get("optimizer_args", {
+            "momentum": self.momentum,
+            "nesterov": CLS_USE_NESTEROV,
+        })
+        self.optimizer = kwargs.get("optimizer", SGD)(self.learning_rate, **self.optimizer_args)
 
         # metrics
         self.metrics: dict = {"loss": None}
@@ -73,22 +77,34 @@ class NetworkModelManager:
         json.dump(self.history, open(self.history_path, 'w'))
 
     def update_curr_epoch(self):
-        self.current_epoch = len(self.history.get("loss", []))
+        self.current_epoch = len(self.history.get("train", {}).get("loss", []))
+
+    @staticmethod
+    def concat_phase_logs(logs_0: dict, logs_1: dict):
+        re_logs = {**logs_0, **logs_1}
+
+        for key, value in re_logs.items():
+            if key in logs_0 and key in logs_1:
+                if hasattr(logs_0[key], '__iter__') and hasattr(value, '__iter__'):
+                    re_logs[key] = list(np.array(list(logs_0[key]) + list(value), dtype=float))
+                elif not hasattr(logs_0[key], '__iter__') and hasattr(value, '__iter__'):
+                    re_logs[key] = list(np.array([logs_0[key]] + list(value), dtype=float))
+                elif hasattr(logs_0[key], '__iter__') and not hasattr(value, '__iter__'):
+                    re_logs[key] = list(np.array(list(logs_0[key]) + [value], dtype=float))
+                else:
+                    re_logs[key] = list(np.array([logs_0[key], value], dtype=float))
+
+            else:
+                if hasattr(value, '__iter__'):
+                    re_logs[key] = list(np.array(list(value), dtype=float))
+                else:
+                    re_logs[key] = list(np.array([value], dtype=float))
+
+        return re_logs
 
     def update_history(self, other: dict):
-        temp = {**self.history, **other}
-        for key, value in temp.items():
-            if key in self.history and key in other:
-                if isinstance(value, list):
-                    temp[key] = list(np.array(self.history[key] + value, dtype=float))
-                elif isinstance(value, np.ndarray):
-                    temp[key] = list(np.array(list(self.history[key]) + list(value), dtype=float))
-                else:
-                    temp[key] = list(np.array([self.history[key], value], dtype=float))
-            else:
-                temp[key] = list(np.array(value, dtype=float))
-
-        self.history = temp
+        for _phase, p_logs in other.items():
+            self.history[_phase] = self.concat_phase_logs(self.history.get(_phase, {}), p_logs)
         self.save_history()
 
     def load(self):
@@ -132,18 +148,51 @@ class NetworkModelManager:
 class NetworkManagerCallback(tf.keras.callbacks.Callback):
     def __init__(self, network_manager: NetworkModelManager, **kwargs):
         super().__init__()
+
+        # base parameters
         self.network_manager = network_manager
         self.verbose = kwargs.get("verbose", True)
         self.save_freq = kwargs.get("save_freq", 1)
 
+        # EarlyStopping parameters
+        self.early_stopping_enabled = kwargs.get("early_stopping", True)
+        self.early_stopping_patience = kwargs.get("patience", 100)
+        self.early_stopping_triggered = False
+        self.val_losses = self.network_manager.history.get("val", {}).get("loss", [])
+
+        # Learning rate decay
+        self.learning_rate_decay_enabled = kwargs.get("learning_rate_decay_enabled", True)
+        self.learning_rate_decay_factor = kwargs.get("learning_rate_decay_factor", 0.5)
+        self.learning_rate_decay_freq = kwargs.get("learning_rate_decay_freq", 10)
+        self.init_lr = self.network_manager.model.optimizer.learning_rate
+
     def on_epoch_end(self, epoch, logs=None):
         self.network_manager.current_epoch = epoch
+
+        self._saving_weights(epoch, logs)
+        self._early_stopping_func(epoch, logs)
+        self._learning_rate_decay_func(epoch, logs)
+
+        self.network_manager.update_history(logs)
+
+    def _saving_weights(self, epoch, logs=None):
         if epoch % self.save_freq == 0:
             if self.verbose:
                 print(f"\n Epoch {epoch}: saving model to {self.network_manager.checkpoint_path} \n")
             self.network_manager.save_weights()
 
-        self.network_manager.update_history({k: [v] for k, v in logs.items()})
+    def _early_stopping_func(self, epoch, logs=None):
+        if self.early_stopping_enabled:
+            self.val_losses.append(logs.get("val", {}).get("loss"))
+            if len(self.val_losses) > self.early_stopping_patience \
+                    and max(self.val_losses[-self.early_stopping_patience:]) == self.val_losses[-1]:
+                self.early_stopping_triggered = True
+
+    def _learning_rate_decay_func(self, epoch, logs=None):
+        if self.learning_rate_decay_enabled:
+            if epoch % self.learning_rate_decay_freq == 0:
+                running_lr = self.init_lr * (self.learning_rate_decay_factor**int(epoch/self.learning_rate_decay_freq))
+                self.network_manager.model.optimizer.learning_rate = running_lr
 
 
 class SelfLearnerWithImgRotation(NetworkModelManager):
@@ -318,4 +367,3 @@ if __name__ == '__main__':
     self_learner.save_history()
     self_learner.load_history()
     print(self_learner.history)
-
