@@ -10,7 +10,7 @@ import tensorflow as tf
 if __name__ == '__main__':
     mini_image_net = MiniImageNetDataset(
         # data_dir="D:\Datasets\mini-imagenet"
-        data_dir=r"..\..\Datasets\mini-imagenet"
+        data_dir=r"\Datasets\mini-imagenet"
     )
 
     few_shot_learner = FewShotImgLearner(
