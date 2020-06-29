@@ -1,4 +1,4 @@
-from BoostingBF3S.datasets import MiniImageNetDataset
+from datasets import MiniImageNetDataset
 from models import FewShotImgLearner
 from trainers import FewShotTrainer
 from models import NetworkManagerCallback
