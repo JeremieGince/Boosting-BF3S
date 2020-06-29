@@ -2,9 +2,9 @@ import tensorflow as tf
 from tqdm import tqdm
 import numpy as np
 
-from datasets import DatasetBase
-from models import NetworkModelManager, NetworkManagerCallback
-import util
+from modules.datasets import DatasetBase
+from modules.models import NetworkModelManager, NetworkManagerCallback
+import modules.util as util
 
 
 class Trainer:

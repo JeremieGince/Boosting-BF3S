@@ -8,10 +8,10 @@ from PIL import ImageFile
 from scipy import ndimage
 import warnings
 
-import util
-from hyperparameters import SEED
-from user_constants import MINIIMAGETNET_DIR
-from util import OutputForm, TrainingPhase
+import modules.util as util
+from modules.hyperparameters import SEED
+from modules.user_constants import MINIIMAGETNET_DIR
+from modules.util import OutputForm, TrainingPhase
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 

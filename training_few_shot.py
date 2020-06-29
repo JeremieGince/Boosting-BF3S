@@ -1,8 +1,8 @@
-from datasets import MiniImageNetDataset
-from models import FewShotImgLearner
-from trainers import FewShotTrainer
-from models import NetworkManagerCallback
-import util
+from modules.datasets import MiniImageNetDataset
+from modules.models import FewShotImgLearner
+from modules.trainers import FewShotTrainer
+from modules.models import NetworkManagerCallback
+import modules.util as util
 
 import tensorflow as tf
 

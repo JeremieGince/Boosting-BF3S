@@ -6,9 +6,9 @@ from tensorflow.keras.layers import Flatten, Dense, BatchNormalization, Softmax,
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import SGD
 
-import util
-import backbones
-from hyperparameters import *
+import modules.util as util
+import modules.backbones as backbones
+from modules.hyperparameters import *
 
 os.environ["PATH"] += os.pathsep + r'C:\Program Files (x86)\Graphviz2.38\bin/'
 
