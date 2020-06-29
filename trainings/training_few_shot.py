@@ -9,11 +9,12 @@ import tensorflow as tf
 
 if __name__ == '__main__':
     mini_image_net = MiniImageNetDataset(
-        data_dir="D:\Datasets\mini-imagenet"
+        # data_dir="D:\Datasets\mini-imagenet"
+        data_dir=r"..\..\Datasets\mini-imagenet"
     )
 
     few_shot_learner = FewShotImgLearner(
-        name="prototypical_few_shot_learner-conv-4-64_backbone",
+        name="prototypical_few_shot_learner-conv-4-64_backbone_20way5shot",
         image_size=mini_image_net.image_size,
         backbone="conv-4-64",
         optimizer_args={},
@@ -38,7 +39,7 @@ if __name__ == '__main__':
         dataset=mini_image_net,
 
         # few shot params
-        n_way=5,
+        n_way=20,
         n_shot=5,
         n_query=15,
         n_train_episodes=100,
@@ -51,4 +52,4 @@ if __name__ == '__main__':
 
     few_shot_trainer.train(epochs=200)
 
-    util.plotHistory(few_shot_learner.history)
+    util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name)
