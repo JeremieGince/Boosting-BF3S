@@ -2,9 +2,10 @@ import os
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Flatten, Dense, BatchNormalization, Softmax, ReLU
+from tensorflow.keras.layers import Flatten, Dense, BatchNormalization, Softmax, ReLU, Input
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.losses import binary_crossentropy
 
 import modules.util as util
 import modules.backbones as backbones
@@ -221,24 +222,28 @@ class SelfLearnerWithImgRotation(NetworkModelManager):
 
         assert self._nb_hidden_layer == len(self._hidden_neurons)
 
+        self.classifier = Sequential(
+            Flatten(),
+            ReLU(),
+            *[
+                Sequential([
+                    Dense(h),
+                    BatchNormalization(),
+                    ReLU(),
+                ], name="Dense_Block")
+                for h in self._hidden_neurons
+            ],
+            Dense(self.output_size, name="output_layer"),
+            Softmax(),
+        )
+
     def build(self):
         self.model = Sequential(
             [
                 self.available_backbones.get(self._backbone)(
                     **self._backbone_args, **self._backbone_kwargs
                 ),
-                Flatten(),
-                ReLU(),
-                *[
-                    Sequential([
-                        Dense(h),
-                        BatchNormalization(),
-                        ReLU(),
-                    ], name="Dense_Block")
-                    for h in self._hidden_neurons
-                ],
-                Dense(self.output_size, name="output_layer"),
-                Softmax(),
+                self.classifier,
             ]
         )
 
@@ -265,6 +270,9 @@ class Prototypical(tf.keras.Model):
                  # Model parameters
                  backbone: tf.keras.Model,
 
+                 # SL bosster
+                 sl_classifier: tf.keras.Model = None,
+
                  # others
                  **kwargs):
         """
@@ -280,7 +288,17 @@ class Prototypical(tf.keras.Model):
         self.w, self.h, self.c = w, h, c
         self.backbone = backbone
 
-    def call(self, support, query):
+        self.sl_classifier = sl_classifier
+
+    def call(self, support, query, sl_args: list = None):
+        if self.sl_classifier is None:
+            return self.call_proto(support, query)
+        else:
+            assert sl_args is not None
+
+            return self.call_proto_sl(support, query, sl_args)
+
+    def call_proto(self, support, query):
         n_class = support.shape[0]
         n_support = support.shape[1]
         n_query = query.shape[1]
@@ -313,12 +331,44 @@ class Prototypical(tf.keras.Model):
         log_p_y = tf.nn.log_softmax(-dists, axis=-1)
         log_p_y = tf.reshape(log_p_y, [n_class, n_query, -1])
 
-        loss = -tf.reduce_mean(tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, log_p_y), axis=-1), [-1]))
-        eq = tf.cast(tf.equal(
-            tf.cast(tf.argmax(log_p_y, axis=-1), tf.int32),
-            tf.cast(y, tf.int32)), tf.float32)
-        acc = tf.reduce_mean(eq)
-        return loss, acc
+        loss_few = -tf.reduce_mean(tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, log_p_y), axis=-1), [-1]))
+        eq = tf.cast(
+            tf.equal(
+                tf.cast(tf.argmax(log_p_y, axis=-1), tf.int32),
+                tf.cast(y, tf.int32)
+            ), tf.float32
+        )
+        acc_few = tf.reduce_mean(eq)
+
+        return loss_few, acc_few
+
+    def call_proto_sl(self, support, query, sl_args: list):
+        [sl_x, sl_y, sl_test_x, sl_test_y] = sl_args
+        sl_embed_x, sl_embed_test_x = self.backbone(sl_x), self.backbone(sl_test_x)
+        sl_y_pred, sl_test_y_pred = self.sl_classifier(sl_embed_x), self.sl_classifier(sl_embed_test_x)
+
+        loss_sl = binary_crossentropy(sl_y, sl_y_pred) + binary_crossentropy(sl_test_y, sl_test_y_pred)
+
+        sl_eq = tf.cast(
+            tf.equal(
+                tf.cast(tf.argmax(sl_y_pred, axis=-1), tf.int32),
+                tf.cast(tf.argmax(sl_y, axis=-1), tf.int32)
+            ), tf.float32
+        )
+
+        sl_eq_test = sl_eq = tf.cast(
+            tf.equal(
+                tf.cast(tf.argmax(sl_test_y_pred, axis=-1), tf.int32),
+                tf.cast(tf.argmax(sl_test_y, axis=-1), tf.int32)
+            ), tf.float32
+        )
+
+        sl_eq_t = tf.concat([sl_eq, sl_eq_test], axis=0)
+
+        acc_sl = tf.reduce_mean(sl_eq_t)
+
+        loss_few, acc_few = self.call_proto(support, query)
+        return loss_few, acc_few, loss_sl, acc_sl
 
 
 class FewShotImgLearner(NetworkModelManager):
@@ -345,6 +395,48 @@ class FewShotImgLearner(NetworkModelManager):
         self.model = Prototypical(
             # n_query=,
             # n_support=,
+            w=self.img_size,
+            h=self.img_size,
+            c=self.channels,
+            backbone=self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
+        )
+
+        return self.model
+
+    @staticmethod
+    def loss_function(y_true, y_pred, **kwargs):
+        return tf.keras.losses.binary_crossentropy(y_true, y_pred, from_logits=kwargs.get("from_logits", False))
+
+
+class BoostedFewShotLearner(NetworkModelManager):
+    default_backbone = "conv-4-64"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.img_size = kwargs.get("image_size", 84)
+        self.channels = kwargs.get("channels", 3)
+
+        self._backbone = kwargs.get("backbone", FewShotImgLearner.default_backbone)
+        assert self._backbone in NetworkModelManager.available_backbones
+        self._backbone_args = kwargs.get(
+            "backbone_args",
+            {
+                "include_top": False,
+                "weights": None,
+                "input_shape": (self.img_size, self.img_size, self.channels)
+            }
+        )
+        self._backbone_kwargs = kwargs.get("backbone_kwargs", {})
+
+        self._nb_hidden_layer: int = kwargs.get("nb_hidden_layers", 1)
+        self._hidden_neurons: list = kwargs.get("hidden_neurons", [4096 for _ in range(self._nb_hidden_layer)])
+
+        assert self._nb_hidden_layer == len(self._hidden_neurons)
+
+    def build(self):
+        encoder_input = Input(shape=(self.img_size, self.img_size, self.channels), name="encoder_input")
+
+        self.model = Prototypical(
             w=self.img_size,
             h=self.img_size,
             c=self.channels,
