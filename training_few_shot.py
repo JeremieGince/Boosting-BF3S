@@ -17,6 +17,8 @@ if __name__ == '__main__':
     if sys.argv:
         data_dir = sys.argv[0]
 
+    print(f"data_dir: {data_dir}")
+
     mini_image_net = MiniImageNetDataset(
         data_dir=data_dir
     )
