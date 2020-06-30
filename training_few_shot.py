@@ -10,14 +10,12 @@ import sys
 
 if __name__ == '__main__':
 
-    way = 20
+    way = 5
     shot = 5
 
     data_dir = r"D:\Datasets\mini-imagenet"
-    if sys.argv:
+    if len(sys.argv) > 2:
         data_dir = sys.argv[1]
-
-    print(f"data_dir: {data_dir}")
 
     mini_image_net = MiniImageNetDataset(
         data_dir=data_dir
