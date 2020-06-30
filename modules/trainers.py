@@ -75,6 +75,7 @@ class Trainer:
         epochs_range = range(self.modelManager.current_epoch, epochs)
 
         self.progress = tqdm(
+            ascii=True,
             iterable=epochs_range,
             unit="epoch",
         )
@@ -247,6 +248,7 @@ class FewShotTrainer(Trainer):
         phase = util.TrainingPhase.TEST
 
         self.progress = tqdm(
+            ascii=True,
             iterable=range(self.n_test_episodes),
             unit="episode",
         )
@@ -290,9 +292,9 @@ class FewShotTrainer(Trainer):
 
 
 if __name__ == '__main__':
-    from datasets import MiniImageNetDataset, OutputForm
-    from models import SelfLearnerWithImgRotation
-    from hyperparameters import *
+    from modules.datasets import MiniImageNetDataset, OutputForm
+    from modules.models import SelfLearnerWithImgRotation
+    from modules.hyperparameters import *
     import time
 
     # -----------------------------------------------------------------------------------------------------------------
