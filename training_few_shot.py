@@ -15,6 +15,9 @@ if __name__ == '__main__':
     cerebus = False
 
     data_dir = r"D:\Datasets\mini-imagenet"
+
+    print(sys.argv)
+
     if len(sys.argv) > 2:
         data_dir = sys.argv[1]
         cerebus = True
