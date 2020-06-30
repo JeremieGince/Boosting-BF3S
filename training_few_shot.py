@@ -5,12 +5,16 @@ from modules.models import NetworkManagerCallback
 import modules.util as util
 
 import tensorflow as tf
+import sys
 
 
 if __name__ == '__main__':
+    data_dir = r"D:\Datasets\mini-imagenet"
+    if sys.argv:
+        data_dir = sys.argv[0]
+
     mini_image_net = MiniImageNetDataset(
-        # data_dir="D:\Datasets\mini-imagenet"
-        data_dir="../../Datasets/mini-imagenet"
+        data_dir=data_dir
     )
 
     few_shot_learner = FewShotImgLearner(
