@@ -212,6 +212,7 @@ class MiniImageNetDataset(DatasetBase):
     def get_few_shot_generator(self, _n_way, _n_shot, _n_query,
                                phase: TrainingPhase,
                                **kwargs):
+        # TODO: ajouter le outputForm et en mettre un pour FewShot et un pour FewShotSL
         _raw_data = util.load_pickle_data(self.phase_to_file.get(phase))
 
         # Convert original data to format [n_classes, n_img, w, h, c]
