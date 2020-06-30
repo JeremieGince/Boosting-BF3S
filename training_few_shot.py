@@ -60,6 +60,6 @@ if __name__ == '__main__':
         network_callback=network_callback,
     )
 
-    few_shot_trainer.train(epochs=10)
+    few_shot_trainer.train(epochs=1)
 
     util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name)
