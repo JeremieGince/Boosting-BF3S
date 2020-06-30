@@ -10,7 +10,7 @@ import sys
 
 if __name__ == '__main__':
 
-    way = 5
+    way = 20
     shot = 5
 
     data_dir = r"D:\Datasets\mini-imagenet"
