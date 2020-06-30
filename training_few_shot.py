@@ -12,17 +12,19 @@ if __name__ == '__main__':
 
     way = 5
     shot = 5
+    cerebus = False
 
     data_dir = r"D:\Datasets\mini-imagenet"
     if len(sys.argv) > 2:
         data_dir = sys.argv[1]
+        cerebus = True
 
     mini_image_net = MiniImageNetDataset(
         data_dir=data_dir
     )
 
     few_shot_learner = FewShotImgLearner(
-        name=f"prototypical_few_shot_learner-conv-4-64_backbone_{way}way{shot}shot",
+        name=f"prototypical_few_shot_learner-conv-4-64_backbone_{way}way{shot}shot{'_c' if cerebus else ''}",
         image_size=mini_image_net.image_size,
         backbone="conv-4-64",
         optimizer_args={},
@@ -39,7 +41,7 @@ if __name__ == '__main__':
         patience=50,
         learning_rate_decay_enabled=True,
         learning_rate_decay_factor=0.5,
-        learning_rate_decay_freq=1,
+        learning_rate_decay_freq=2,
     )
 
     few_shot_trainer = FewShotTrainer(
@@ -50,14 +52,14 @@ if __name__ == '__main__':
         n_way=way,
         n_shot=shot,
         n_query=15,
-        n_train_episodes=2_000,
-        n_val_episodes=1_000,
+        n_train_episodes=1_000,
+        n_val_episodes=600,
         n_test_episodes=600,
 
         # callback params
         network_callback=network_callback,
     )
 
-    few_shot_trainer.train(epochs=100)
+    few_shot_trainer.train(epochs=10)
 
     util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name)
