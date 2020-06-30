@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     data_dir = r"D:\Datasets\mini-imagenet"
     if sys.argv:
-        data_dir = sys.argv[0]
+        data_dir = sys.argv[1]
 
     print(f"data_dir: {data_dir}")
 
