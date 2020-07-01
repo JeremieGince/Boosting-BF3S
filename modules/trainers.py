@@ -60,7 +60,7 @@ class Trainer:
         }
         return self.data_generators
 
-    def train(self, epochs=1):
+    def train(self, epochs=1, final_testing=True):
         if self.load_on_start:
             self.modelManager.load()
 
@@ -103,7 +103,8 @@ class Trainer:
         self.progress.close()
         self.modelManager.save_weights()
 
-        self.test()
+        if final_testing:
+            self.test()
 
         return history
 
@@ -179,8 +180,11 @@ class Trainer:
 class FewShotTrainer(Trainer):
     def __init__(self, model_manager: NetworkModelManager, dataset: DatasetBase, **kwargs):
         self.n_way = kwargs.get("n_way", 20)
+        self.n_test_way = kwargs.get("n_test_way", self.n_way)
         self.n_shot = kwargs.get("n_shot", 5)
+        self.n_test_shot = kwargs.get("n_test_shot", self.n_shot)
         self.n_query = kwargs.get("n_query", 1)
+        self.n_test_query = kwargs.get("n_test_query", self.n_query)
         self.n_train_episodes = kwargs.get("n_train_episodes", 10)
         self.n_val_episodes = kwargs.get("n_val_episodes", 10)
         self.n_test_episodes = kwargs.get("n_test_episodes", 600)
@@ -190,14 +194,32 @@ class FewShotTrainer(Trainer):
             util.TrainingPhase.VAL: self.n_val_episodes,
         }
 
+        self.phase_to_few_shot_params = {
+            util.TrainingPhase.TRAIN: {
+                "way": self.n_way,
+                "shot": self.n_shot,
+                "query": self.n_query
+            },
+            util.TrainingPhase.VAL: {
+                "way": self.n_test_way,
+                "shot": self.n_test_shot,
+                "query": self.n_test_query
+            },
+            util.TrainingPhase.TEST: {
+                "way": self.n_test_way,
+                "shot": self.n_test_shot,
+                "query": self.n_test_query
+            },
+        }
+
         super().__init__(model_manager, dataset, **kwargs)
 
     def set_data_generators(self):
         self.data_generators = {
             _p: self.dataset.get_few_shot_generator(
-                _n_way=self.n_way,
-                _n_shot=self.n_shot,
-                _n_query=self.n_query,
+                _n_way=self.phase_to_few_shot_params[_p]["way"],
+                _n_shot=self.phase_to_few_shot_params[_p]["shot"],
+                _n_query=self.phase_to_few_shot_params[_p]["query"],
                 phase=_p,
             )
             for _p in util.TrainingPhase
@@ -282,7 +304,10 @@ class FewShotTrainer(Trainer):
         if self.verbose:
             print("\n--- Test results --- \n"
                   f"model: {self.modelManager.name} \n"
-                  f"Few Shot params: {self.n_way}-way {self.n_shot}-shot \n"
+                  f"Few Shot params: \n "
+                  f"\t Train: {self.n_way}-way {self.n_shot}-shot \n"
+                  f"\t Val: {self.n_test_way}-way {self.n_test_shot}-shot \n"
+                  f"\t Test: {self.n_test_way}-way {self.n_test_shot}-shot \n \n"
                   f"Train episodes: {self.n_train_episodes * (self.modelManager.current_epoch + 1)} \n"
                   f"Test episodes: {self.n_test_episodes} \n"
                   f"Mean accuracy: {phase_logs.get('accuracy')*100:.2f}% \n"
