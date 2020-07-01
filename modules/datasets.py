@@ -15,8 +15,6 @@ from modules.util import OutputForm, TrainingPhase
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-tf.random.set_seed(SEED)
-
 
 class DatasetBase:
     def __init__(
@@ -24,6 +22,9 @@ class DatasetBase:
             data_dir,
             **kwargs
     ):
+        tf.random.set_seed(SEED)
+        np.random.seed(SEED)
+
         self.name = kwargs.get("name", "Dataset")
         self.data_dir = data_dir
 
@@ -80,6 +81,7 @@ class DatasetBase:
 
     def get_few_shot_generator(self, _n_way, _n_shot, _n_query,
                                phase: TrainingPhase,
+                               output_form: OutputForm = OutputForm.FS,
                                **kwargs):
         warnings.warn("get_few_shot_generator not Implemented yet")
 
@@ -211,8 +213,8 @@ class MiniImageNetDataset(DatasetBase):
 
     def get_few_shot_generator(self, _n_way, _n_shot, _n_query,
                                phase: TrainingPhase,
+                               output_form: OutputForm = OutputForm.FS,
                                **kwargs):
-        # TODO: ajouter le outputForm et en mettre un pour FewShot et un pour FewShotSL
         _raw_data = util.load_pickle_data(self.phase_to_file.get(phase))
 
         # Convert original data to format [n_classes, n_img, w, h, c]
@@ -237,7 +239,35 @@ class MiniImageNetDataset(DatasetBase):
                     support[_i] = _data[i_class, selected[:_n_shot]]
                     query[_i] = _data[i_class, selected[_n_shot:]]
 
-                yield support, query
+                if output_form == OutputForm.FS:
+                    yield support, query
+                elif output_form == OutputForm.FS_SL:
+                    support_reshape = np.reshape(support, newshape=[_n_way*_n_shot, _w, _h, _c])
+                    query_reshape = np.reshape(query, newshape=[_n_way * _n_query, _w, _h, _c])
+
+                    sl_y_r = np.random.choice(list(self.possible_rotations), support_reshape.shape[0])
+                    sl_x = np.array(list(map(
+                        lambda _t: ndimage.rotate(_t[0], _t[1], reshape=False),
+                        zip(support_reshape, sl_y_r)
+                    )))
+                    sl_y = np.array(list(map(
+                        lambda _r: self.possible_rotations_to_one_hot[_r],
+                        sl_y_r
+                    )))
+
+                    sl_test_y_r = np.random.choice(list(self.possible_rotations), query_reshape.shape[0])
+                    sl_test_x = np.array(list(map(
+                        lambda _t: ndimage.rotate(_t[0], _t[1], reshape=False),
+                        zip(query_reshape, sl_test_y_r)
+                    )))
+                    sl_test_y = np.array(list(map(
+                        lambda _r: self.possible_rotations_to_one_hot[_r],
+                        sl_test_y_r
+                    )))
+
+                    yield support, query, sl_x, sl_y, sl_test_x, sl_test_y
+                else:
+                    raise NotImplementedError()
 
         return _gen()
 
@@ -247,10 +277,25 @@ class MiniImageNetDataset(DatasetBase):
 
 
 if __name__ == '__main__':
-    mini_imagenet_dataset = MiniImageNetDataset(batch_size=64)
+    import matplotlib.pyplot as plt
+    mini_imagenet_dataset = MiniImageNetDataset(data_dir=r"D:\Datasets\mini-imagenet")
     # mini_imagenet_dataset.plot_samples()
     #
-    # mini_gen = mini_imagenet_dataset.get_generator(phase=TrainingPhase.TRAIN, output_form=OutputForm.ROT, shuffle=True)
-    #
-    # print(mini_gen, iter(mini_gen), next(iter(mini_gen)), sep='\n')
+    mini_gen = mini_imagenet_dataset.get_few_shot_generator(
+        _n_way=1, _n_shot=1, _n_query=1,
+        phase=TrainingPhase.TRAIN, output_form=OutputForm.FS_SL)
 
+    print(mini_gen, iter(mini_gen), next(iter(mini_gen)), sep='\n')
+
+    support, query, sl_x, sl_y, sl_test_x, sl_test_y = next(iter(mini_gen))
+
+    _l = [support, query, sl_x, sl_test_x]
+    _lbl = ["support", "query", str(sl_y), str(sl_test_y)]
+    fig = plt.figure()
+    axes = fig.subplots(1, len(_l))
+
+    for i, img in enumerate(_l):
+        axes[i].imshow(np.squeeze(img))
+        axes[i].set_title(_lbl[i])
+
+    plt.show()
