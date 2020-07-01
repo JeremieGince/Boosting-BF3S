@@ -176,6 +176,10 @@ class Trainer:
     def test(self):
         pass
 
+    @property
+    def config(self) -> str:
+        return ""
+
 
 class FewShotTrainer(Trainer):
     def __init__(self, model_manager: NetworkModelManager, dataset: DatasetBase, **kwargs):
@@ -303,17 +307,22 @@ class FewShotTrainer(Trainer):
 
         if self.verbose:
             print("\n--- Test results --- \n"
-                  f"model: {self.modelManager.name} \n"
-                  f"Few Shot params: \n "
-                  f"\t Train: {self.n_way}-way {self.n_shot}-shot \n"
-                  f"\t Val: {self.n_test_way}-way {self.n_test_shot}-shot \n"
-                  f"\t Test: {self.n_test_way}-way {self.n_test_shot}-shot \n \n"
+                  f"{self.config}"
                   f"Train episodes: {self.n_train_episodes * (self.modelManager.current_epoch + 1)} \n"
                   f"Test episodes: {self.n_test_episodes} \n"
                   f"Mean accuracy: {phase_logs.get('accuracy')*100:.2f}% \n"
                   f"{'-'*35}")
 
         return phase_logs
+
+    @property
+    def config(self) -> str:
+        _config = f"model: {self.modelManager.name} \n" \
+                  f"Few Shot params: \n " \
+                  f"\t Train: {self.n_way}-way {self.n_shot}-shot \n" \
+                  f"\t Val: {self.n_test_way}-way {self.n_test_shot}-shot \n" \
+                  f"\t Test: {self.n_test_way}-way {self.n_test_shot}-shot \n \n"
+        return _config
 
 
 if __name__ == '__main__':
