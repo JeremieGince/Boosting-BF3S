@@ -63,4 +63,4 @@ if __name__ == '__main__':
 
     few_shot_trainer.train(epochs=10)
 
-    util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name)
+    util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name, savefig=not cerebus)
