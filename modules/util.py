@@ -38,14 +38,13 @@ def plotHistory(history: dict, **kwargs):
     import os
     import matplotlib.pyplot as plt
 
-    metrics_to_phases = {
-        _metric_name: {
-            _p: hist_vec
-            for _p in history
-        }
-        for _p in history
-        for _metric_name, hist_vec in history[_p].items()
-    }
+    assert len(history) > 0
+
+    metrics_to_phases = {_metric_name: {} for _metric_name in history[list(history.keys())[0]]}
+
+    for _p in history:
+        for _metric_name, hist_vec in history[_p].items():
+            metrics_to_phases[_metric_name][_p] = hist_vec
 
     plt.figure(figsize=(12, 12))
 
