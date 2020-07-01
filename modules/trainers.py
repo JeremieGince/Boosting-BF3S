@@ -317,7 +317,7 @@ class FewShotTrainer(Trainer):
 
     @property
     def config(self) -> str:
-        _config = f"model: {self.modelManager.name} \n" \
+        _config = f"\n Model: {self.modelManager.name} \n" \
                   f"Few Shot params: \n " \
                   f"\t Train: {self.n_way}-way {self.n_shot}-shot \n" \
                   f"\t Val: {self.n_test_way}-way {self.n_test_shot}-shot \n" \
