@@ -161,6 +161,8 @@ class TrainingPhase(enum.Enum):
 class OutputForm(enum.Enum):
     LABEL = 0
     ROT = 1
+    FS = 2  # Few Shot
+    FS_SL = 3  # Few Shot and Self-Learning
 
 
 def calc_euclidian_dists(x, y):
