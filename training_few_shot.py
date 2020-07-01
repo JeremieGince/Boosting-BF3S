@@ -11,7 +11,10 @@ import sys
 if __name__ == '__main__':
 
     way = 5
+    t_way = 1
     shot = 5
+    t_shot = 1
+
     cerebus = False
 
     data_dir = r"D:\Datasets\mini-imagenet"
@@ -25,7 +28,8 @@ if __name__ == '__main__':
     )
 
     few_shot_learner = FewShotImgLearner(
-        name=f"prototypical_few_shot_learner-conv-4-64_backbone_{way}way{shot}shot{'_c' if cerebus else ''}",
+        name=f"prototypical_few_shot_learner-conv-4-64_backbone_"
+             f"{way}way{shot}shot_{way}tway{shot}tshot{'_c' if cerebus else ''}",
         image_size=mini_image_net.image_size,
         backbone="conv-4-64",
         optimizer_args={},
@@ -41,8 +45,8 @@ if __name__ == '__main__':
         early_stopping=True,
         patience=50,
         learning_rate_decay_enabled=True,
-        learning_rate_decay_factor=0.75,
-        learning_rate_decay_freq=2,
+        learning_rate_decay_factor=0.5,
+        learning_rate_decay_freq=20,
     )
 
     few_shot_trainer = FewShotTrainer(
@@ -51,16 +55,20 @@ if __name__ == '__main__':
 
         # few shot params
         n_way=way,
+        n_test_way=t_way,
         n_shot=shot,
+        n_test_shot=t_shot,
         n_query=15,
-        n_train_episodes=1_000,
-        n_val_episodes=600,
+        n_test_query=5,
+        n_train_episodes=100,
+        n_val_episodes=100,
         n_test_episodes=600,
 
         # callback params
         network_callback=network_callback,
     )
 
-    few_shot_trainer.train(epochs=10)
+    few_shot_trainer.train(epochs=300, final_testing=False)
+    few_shot_trainer.test()
 
     util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name, savefig=not cerebus)
