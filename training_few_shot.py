@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     few_shot_learner = FewShotImgLearner(
         name=f"prototypical_few_shot_learner-conv-4-64_backbone_"
-             f"{way}way{shot}shot_{way}tway{shot}tshot{'_c' if cerebus else ''}",
+             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot{'_c' if cerebus else ''}",
         image_size=mini_image_net.image_size,
         backbone="conv-4-64",
         optimizer_args={},
@@ -67,7 +67,7 @@ if __name__ == '__main__':
         # callback params
         network_callback=network_callback,
     )
-    
+
     print(few_shot_trainer.config)
     few_shot_trainer.train(epochs=300, final_testing=False)
     few_shot_trainer.test()
