@@ -337,7 +337,7 @@ class BoostedFewShotLearner(NetworkModelManager):
 
     def build(self):
         _backbone = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
-        print(f"_backbone.output_shape: {_backbone.output_shape}")
+        print(f"_backbone.input_shape, _backbone.output_shape: {_backbone.input_shape, _backbone.output_shape}")
         _cls_input = Input(shape=_backbone.output_shape)
         _seq = Sequential(self.sl_classifier_layers)
         print(f"_seq: {_seq}")
