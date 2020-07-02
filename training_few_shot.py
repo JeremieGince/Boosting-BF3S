@@ -1,7 +1,7 @@
 from modules.datasets import MiniImageNetDataset
-from modules.models import FewShotImgLearner
+from modules.modelManagers import FewShotImgLearner
 from modules.trainers import FewShotTrainer
-from modules.models import NetworkManagerCallback
+from modules.modelManagers import NetworkManagerCallback
 import modules.util as util
 
 import tensorflow as tf
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     t_shot = 5
     backbone = "conv-4-64"
 
-    cerebus = False
+    cerebus = not False
 
     data_dir = r"D:\Datasets\mini-imagenet"
 
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     )
 
     print(few_shot_trainer.config)
-    few_shot_trainer.train(epochs=300, final_testing=False)
+    # few_shot_trainer.train(epochs=300, final_testing=False)
     few_shot_trainer.test()
 
     util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name, savefig=not cerebus)
