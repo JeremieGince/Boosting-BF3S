@@ -14,6 +14,7 @@ if __name__ == '__main__':
     t_way = 5
     shot = 5
     t_shot = 5
+    backbone = "conv-4-64"
 
     cerebus = False
 
@@ -28,10 +29,10 @@ if __name__ == '__main__':
     )
 
     few_shot_learner = FewShotImgLearner(
-        name=f"prototypical_few_shot_learner-conv-4-64_backbone_"
+        name=f"prototypical_few_shot_learner-{backbone}_backbone_"
              f"{way}way{shot}shot_{t_way}tway{t_shot}tshot{'_c' if cerebus else ''}",
         image_size=mini_image_net.image_size,
-        backbone="conv-4-64",
+        backbone=backbone,
         optimizer_args={},
         learning_rate=1e-3,
         optimizer=tf.keras.optimizers.Adam,
