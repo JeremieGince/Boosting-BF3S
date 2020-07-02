@@ -270,47 +270,56 @@ class FewShotTrainer(Trainer):
 
         return phase_logs
 
-    def test(self):
+    def test(self, n=1):
+        if self.load_on_start:
+            self.modelManager.load()
+
+        phase_logs = {k: [] for k, v in self.running_metrics.items()}
+
         phase = util.TrainingPhase.TEST
 
         self.progress = tqdm(
             ascii=True,
-            iterable=range(self.n_test_episodes),
+            iterable=range(self.n_test_episodes*n),
             unit="episode",
         )
         self.progress.set_description_str("Test")
 
-        # reset the metrics
-        for _metric in self.running_metrics:
-            self.running_metrics[_metric].reset_states()
+        for i in range(n):
+            # reset the metrics
+            for _metric in self.running_metrics:
+                self.running_metrics[_metric].reset_states()
 
-        _data_itr = iter(self.data_generators[phase])
-        for episode_idx in range(self.n_test_episodes):
-            support, query = next(_data_itr)
+            _data_itr = iter(self.data_generators[phase])
+            for episode_idx in range(self.n_test_episodes):
+                support, query = next(_data_itr)
 
-            # Optimize the model
-            # Forward & update gradients
-            loss, acc = self.model.call(support, query)
+                # Optimize the model
+                # Forward & update gradients
+                loss, acc = self.model.call(support, query)
 
-            # Track progress
-            # TODO: get metrics automatically
-            self.running_metrics["loss"].update_state(loss)
-            self.running_metrics["accuracy"].update_state(acc)
+                # Track progress
+                # TODO: get metrics automatically
+                self.running_metrics["loss"].update_state(loss)
+                self.running_metrics["accuracy"].update_state(acc)
 
-            # update progress
-            self.progress.update(1)
-            self.progress.set_postfix_str(' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
-                                                     for k, v in self.running_metrics.items()]))
+                # update progress
+                self.progress.update(1)
+                self.progress.set_postfix_str(' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
+                                                         for k, v in self.running_metrics.items()]))
+                for k in phase_logs:
+                    phase_logs[k].append(self.running_metrics[k].result().numpy())
 
         self.progress.close()
-        phase_logs = {k: v.result().numpy() for k, v in self.running_metrics.items()}
+        phase_logs = {k: np.array(v) for k, v in phase_logs.items()}
 
         if self.verbose:
             print("\n--- Test results --- \n"
                   f"{self.config}"
                   f"Train episodes: {self.n_train_episodes * self.modelManager.current_epoch} \n"
                   f"Test episodes: {self.n_test_episodes} \n"
-                  f"Mean accuracy: {phase_logs.get('accuracy')*100:.2f}% \n"
+                  f"Mean accuracy: {np.mean(phase_logs.get('accuracy'))*100:.2f}% "
+                  f"+/- {np.std(phase_logs.get('accuracy'))*100:.2f} \n"
                   f"{'-'*35}")
 
         return phase_logs
