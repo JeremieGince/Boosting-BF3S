@@ -3,7 +3,7 @@ from tqdm import tqdm
 import numpy as np
 
 from modules.datasets import DatasetBase
-from modules.models import NetworkModelManager, NetworkManagerCallback
+from modules.modelManagers import NetworkModelManager, NetworkManagerCallback
 import modules.util as util
 
 
