@@ -308,7 +308,7 @@ class FewShotTrainer(Trainer):
         if self.verbose:
             print("\n--- Test results --- \n"
                   f"{self.config}"
-                  f"Train episodes: {self.n_train_episodes * (self.modelManager.current_epoch + 1)} \n"
+                  f"Train episodes: {self.n_train_episodes * self.modelManager.current_epoch} \n"
                   f"Test episodes: {self.n_test_episodes} \n"
                   f"Mean accuracy: {phase_logs.get('accuracy')*100:.2f}% \n"
                   f"{'-'*35}")
