@@ -45,7 +45,7 @@ if __name__ == '__main__':
         early_stopping=True,
         patience=50,
         learning_rate_decay_enabled=True,
-        learning_rate_decay_factor=0.5,
+        learning_rate_decay_factor=0.75,
         learning_rate_decay_freq=20,
     )
 
