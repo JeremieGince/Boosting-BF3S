@@ -47,12 +47,15 @@ class Prototypical(tf.keras.Model):
         self.backbone = backbone
 
         self.sl_classifier = sl_classifier
+        self.alpha = kwargs.get("alpha", 1.0)
 
-    def call(self, support, query, sl_args: list = None):
+    def call(self,  inputs, training=None, mask=None):
         if self.sl_classifier is None:
+            support, query = inputs
+
             return self.call_proto(support, query)
         else:
-            assert sl_args is not None
+            support, query, sl_args = inputs
 
             return self.call_proto_sl(support, query, sl_args)
 
@@ -105,25 +108,28 @@ class Prototypical(tf.keras.Model):
         sl_embed_x, sl_embed_test_x = self.backbone(sl_x), self.backbone(sl_test_x)
         sl_y_pred, sl_test_y_pred = self.sl_classifier(sl_embed_x), self.sl_classifier(sl_embed_test_x)
 
-        loss_sl = binary_crossentropy(sl_y, sl_y_pred) + binary_crossentropy(sl_test_y, sl_test_y_pred)
+        lb0 = binary_crossentropy(sl_y, sl_y_pred)
+        lb1 = binary_crossentropy(sl_test_y, sl_test_y_pred)
+        loss_sl = tf.reduce_mean(lb0) + tf.reduce_mean(lb1)
 
-        sl_eq = tf.cast(
-            tf.equal(
-                tf.cast(tf.argmax(sl_y_pred, axis=-1), tf.int32),
-                tf.cast(tf.argmax(sl_y, axis=-1), tf.int32)
-            ), tf.float32
-        )
-
-        sl_eq_test = sl_eq = tf.cast(
-            tf.equal(
-                tf.cast(tf.argmax(sl_test_y_pred, axis=-1), tf.int32),
-                tf.cast(tf.argmax(sl_test_y, axis=-1), tf.int32)
-            ), tf.float32
-        )
-
-        sl_eq_t = tf.concat([sl_eq, sl_eq_test], axis=0)
-
-        acc_sl = tf.reduce_mean(sl_eq_t)
+        # sl_eq = tf.cast(
+        #     tf.equal(
+        #         tf.cast(tf.argmax(sl_y_pred, axis=-1), tf.int32),
+        #         tf.cast(tf.argmax(sl_y, axis=-1), tf.int32)
+        #     ), tf.float32
+        # )
+        #
+        # sl_eq_test = sl_eq = tf.cast(
+        #     tf.equal(
+        #         tf.cast(tf.argmax(sl_test_y_pred, axis=-1), tf.int32),
+        #         tf.cast(tf.argmax(sl_test_y, axis=-1), tf.int32)
+        #     ), tf.float32
+        # )
+        #
+        # sl_eq_t = tf.concat([sl_eq, sl_eq_test], axis=0)
+        #
+        # acc_sl = tf.reduce_mean(sl_eq_t)
 
         loss_few, acc_few = self.call_proto(support, query)
-        return loss_few, acc_few, loss_sl, acc_sl
+        return loss_few + self.alpha*loss_sl, acc_few
+
