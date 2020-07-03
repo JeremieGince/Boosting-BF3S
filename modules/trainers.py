@@ -225,6 +225,7 @@ class FewShotTrainer(Trainer):
                 _n_shot=self.phase_to_few_shot_params[_p]["shot"],
                 _n_query=self.phase_to_few_shot_params[_p]["query"],
                 phase=_p,
+                output_form=self.modelManager.output_form,
             )
             for _p in util.TrainingPhase
         }
@@ -241,17 +242,16 @@ class FewShotTrainer(Trainer):
 
         _data_itr = iter(self.data_generators[phase])
         for episode_idx in range(self.n_training_episodes[phase]):
-            support, query = next(_data_itr)
-
+            inputs = next(_data_itr)
             # Optimize the model
             # Forward & update gradients
             if phase == util.TrainingPhase.TRAIN:
                 with tf.GradientTape() as tape:
-                    loss, acc = self.model.call(support, query)  # TODO: ask ModelManager to get metrics dict as logs
+                    loss, acc = self.model.call(inputs)  # TODO: ask ModelManager to get metrics dict as logs
                 grads = tape.gradient(loss, self.model.trainable_variables)
                 self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
             elif phase == util.TrainingPhase.VAL:
-                loss, acc = self.model.call(support, query)
+                loss, acc = self.model.call(inputs)
             else:
                 raise NotImplementedError(f"Training phase: {phase} not implemented")
 
@@ -317,9 +317,9 @@ class FewShotTrainer(Trainer):
             print("\n--- Test results --- \n"
                   f"{self.config}"
                   f"Train episodes: {self.n_train_episodes * self.modelManager.current_epoch} \n"
-                  f"Test episodes: {self.n_test_episodes} \n"
+                  f"Test episodes: {n*self.n_test_episodes} \n"
                   f"Mean accuracy: {np.mean(phase_logs.get('accuracy'))*100:.2f}% "
-                  f"+/- {np.std(phase_logs.get('accuracy'))*100:.2f} \n"
+                  f"± {np.std(phase_logs.get('accuracy'))*100:.2f} \n"
                   f"{'-'*35}")
 
         return phase_logs
