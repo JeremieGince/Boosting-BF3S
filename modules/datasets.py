@@ -265,7 +265,7 @@ class MiniImageNetDataset(DatasetBase):
                         sl_test_y_r
                     )))
 
-                    yield support, query, sl_x, sl_y, sl_test_x, sl_test_y
+                    yield support, query, [sl_x, sl_y, sl_test_x, sl_test_y]
                 else:
                     raise NotImplementedError()
 
