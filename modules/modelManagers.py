@@ -262,6 +262,7 @@ class FewShotImgLearner(NetworkModelManager):
         super().__init__(**kwargs)
         self.img_size = kwargs.get("image_size", 84)
         self.channels = kwargs.get("channels", 3)
+        self.output_form = util.OutputForm.FS
 
         self._backbone = kwargs.get("backbone", FewShotImgLearner.default_backbone)
         assert self._backbone in NetworkModelManager.available_backbones
@@ -300,6 +301,7 @@ class BoostedFewShotLearner(NetworkModelManager):
         self.img_size = kwargs.get("image_size", 84)
         self.channels = kwargs.get("channels", 3)
         self.input_shape = (self.img_size, self.img_size, self.channels)
+        self.output_form = util.OutputForm.FS_SL
 
         self._backbone = kwargs.get("backbone", FewShotImgLearner.default_backbone)
         assert self._backbone in NetworkModelManager.available_backbones
@@ -337,12 +339,10 @@ class BoostedFewShotLearner(NetworkModelManager):
 
     def build(self):
         _backbone = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
-        print(f"_backbone.input_shape, _backbone.output_shape: {_backbone.input_shape, _backbone.output_shape}")
-        _cls_input = Input(shape=_backbone.output_shape)
+        _cls_input = Input(shape=_backbone.output_shape[1:])
         _seq = Sequential(self.sl_classifier_layers)
-        print(f"_seq: {_seq}")
-        _cls = tf.keras.Model(_cls_input, _seq(_cls_input))
-        print(f"_cls: {_cls}")
+        _cls = tf.keras.Model(inputs=_cls_input, outputs=_seq(_cls_input))
+
         self.model = Prototypical(
             w=self.img_size,
             h=self.img_size,
@@ -350,8 +350,6 @@ class BoostedFewShotLearner(NetworkModelManager):
             backbone=_backbone,
             sl_classifier=_cls,
         )
-
-        self.model.build()
 
         return self.model
 
