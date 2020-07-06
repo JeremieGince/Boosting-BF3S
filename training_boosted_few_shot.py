@@ -16,7 +16,7 @@ if __name__ == '__main__':
     t_shot = 5
     backbone = "conv-4-64"
 
-    cerebus = not False
+    cerebus = False
 
     data_dir = r"D:\Datasets\mini-imagenet"
 
