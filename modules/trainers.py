@@ -292,11 +292,11 @@ class FewShotTrainer(Trainer):
 
             _data_itr = iter(self.data_generators[phase])
             for episode_idx in range(self.n_test_episodes):
-                support, query = next(_data_itr)
+                inputs = next(_data_itr)
 
                 # Optimize the model
                 # Forward & update gradients
-                loss, acc = self.model.call(support, query)
+                loss, acc = self.model.call(inputs)
 
                 # Track progress
                 # TODO: get metrics automatically
