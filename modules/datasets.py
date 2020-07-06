@@ -278,24 +278,28 @@ class MiniImageNetDataset(DatasetBase):
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
+    import sys
     mini_imagenet_dataset = MiniImageNetDataset(data_dir=r"D:\Datasets\mini-imagenet")
     # mini_imagenet_dataset.plot_samples()
     #
     mini_gen = mini_imagenet_dataset.get_few_shot_generator(
-        _n_way=1, _n_shot=1, _n_query=1,
+        _n_way=30, _n_shot=5, _n_query=5,
         phase=TrainingPhase.TRAIN, output_form=OutputForm.FS_SL)
 
     print(mini_gen, iter(mini_gen), next(iter(mini_gen)), sep='\n')
 
-    support, query, sl_x, sl_y, sl_test_x, sl_test_y = next(iter(mini_gen))
+    support, query, [sl_x, sl_y, sl_test_x, sl_test_y] = next(iter(mini_gen))
 
-    _l = [support, query, sl_x, sl_test_x]
-    _lbl = ["support", "query", str(sl_y), str(sl_test_y)]
-    fig = plt.figure()
-    axes = fig.subplots(1, len(_l))
+    b = [e.nbytes for e in [support, query, sl_x, sl_y, sl_test_x, sl_test_y]]
+    print(b, sum(b))
 
-    for i, img in enumerate(_l):
-        axes[i].imshow(np.squeeze(img))
-        axes[i].set_title(_lbl[i])
-
-    plt.show()
+    # _l = [support, query, sl_x, sl_test_x]
+    # _lbl = ["support", "query", str(sl_y), str(sl_test_y)]
+    # fig = plt.figure()
+    # axes = fig.subplots(1, len(_l))
+    #
+    # for i, img in enumerate(_l):
+    #     axes[i].imshow(np.squeeze(img))
+    #     axes[i].set_title(_lbl[i])
+    #
+    # plt.show()
