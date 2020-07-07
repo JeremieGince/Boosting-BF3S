@@ -55,7 +55,7 @@ class Prototypical(tf.keras.Model):
 
             return self.call_proto(support, query)
         else:
-            support, query, sl_args = inputs
+            support, query, *sl_args = inputs
 
             return self.call_proto_sl(support, query, sl_args)
 
@@ -104,9 +104,22 @@ class Prototypical(tf.keras.Model):
         return loss_few, acc_few
 
     def call_proto_sl(self, support, query, sl_args: list):
+        loss_few, acc_few = self.call_proto(support, query)
+        del support
+        del query
+
         [sl_x, sl_y, sl_test_x, sl_test_y] = sl_args
-        sl_embed_x, sl_embed_test_x = self.backbone(sl_x), self.backbone(sl_test_x)
-        sl_y_pred, sl_test_y_pred = self.sl_classifier(sl_embed_x), self.sl_classifier(sl_embed_test_x)
+        sl_embed_x = self.backbone(sl_x)
+        del sl_x
+
+        sl_embed_test_x = self.backbone(sl_test_x)
+        del sl_test_x
+
+        sl_y_pred = self.sl_classifier(sl_embed_x)
+        del sl_embed_x
+
+        sl_test_y_pred = self.sl_classifier(sl_embed_test_x)
+        del sl_embed_test_x
 
         lb0 = binary_crossentropy(sl_y, sl_y_pred)
         lb1 = binary_crossentropy(sl_test_y, sl_test_y_pred)
@@ -130,6 +143,5 @@ class Prototypical(tf.keras.Model):
         #
         # acc_sl = tf.reduce_mean(sl_eq_t)
 
-        loss_few, acc_few = self.call_proto(support, query)
         return loss_few + self.alpha*loss_sl, acc_few
 
