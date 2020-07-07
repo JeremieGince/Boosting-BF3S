@@ -296,7 +296,7 @@ class MiniImageNetDataset(DatasetBase):
             output_shapes=output_shapes,
         )
 
-        return _ds
+        return _ds.prefetch(tf.data.experimental.AUTOTUNE)
 
     def __iter__(self):
         # TODO: change ça pour pas que ce soit juste train
