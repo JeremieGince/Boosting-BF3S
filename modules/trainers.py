@@ -183,7 +183,10 @@ class Trainer:
 
 class FewShotTrainer(Trainer):
     def __init__(self, model_manager: NetworkModelManager, dataset: DatasetBase, **kwargs):
-        self.n_way = kwargs.get("n_way", 20)
+        self.train_mini_batch = kwargs.get("train_mini_batch", 1)
+        self.n_way = kwargs.get("n_way", 30)
+        assert self.n_way % self.train_mini_batch == 0, "n_way must be a multiple of train_mini_batch"
+
         self.n_test_way = kwargs.get("n_test_way", self.n_way)
         self.n_shot = kwargs.get("n_shot", 5)
         self.n_test_shot = kwargs.get("n_test_shot", self.n_shot)
@@ -200,7 +203,7 @@ class FewShotTrainer(Trainer):
 
         self.phase_to_few_shot_params = {
             util.TrainingPhase.TRAIN: {
-                "way": self.n_way,
+                "way": self.n_way // self.train_mini_batch,
                 "shot": self.n_shot,
                 "query": self.n_query
             },
@@ -246,10 +249,22 @@ class FewShotTrainer(Trainer):
             # Optimize the model
             # Forward & update gradients
             if phase == util.TrainingPhase.TRAIN:
-                with tf.GradientTape() as tape:
-                    loss, acc = self.model.call(inputs)  # TODO: ask ModelManager to get metrics dict as logs
-                grads = tape.gradient(loss, self.model.trainable_variables)
-                self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+                accum_grads = [tf.Variable(tf.zeros_like(tv), trainable=False) for tv in self.model.trainable_variables]
+                accum_loss = 0.0
+                accum_acc = []
+
+                # split the batch in mini-batch with gradient accumulation for memory efficiency
+                for mini_batch_idx in range(self.train_mini_batch):
+                    with tf.GradientTape() as tape:
+                        _loss, _acc = self.model.call(inputs)  # TODO: ask ModelManager to get metrics dict as logs
+                    grads = tape.gradient(_loss, self.model.trainable_variables)
+                    [accum_grads[i].assign_add(grad) for i, grad in enumerate(grads)]
+                    accum_loss += _loss
+                    accum_acc.append(_acc)
+
+                loss = accum_loss
+                acc = np.mean(accum_acc)
+                self.model.optimizer.apply_gradients(zip(accum_grads, self.model.trainable_variables))
             elif phase == util.TrainingPhase.VAL:
                 loss, acc = self.model.call(inputs)
             else:
