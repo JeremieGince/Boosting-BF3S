@@ -265,11 +265,38 @@ class MiniImageNetDataset(DatasetBase):
                         sl_test_y_r
                     )))
 
-                    yield support, query, [sl_x, sl_y, sl_test_x, sl_test_y]
+                    yield support, query, sl_x, sl_y, sl_test_x, sl_test_y
                 else:
                     raise NotImplementedError()
 
-        return _gen()
+        if output_form == OutputForm.FS:
+            output_types = (tf.float32, tf.float32)
+            output_shapes = (tf.TensorShape([_n_way, _n_shot, _w, _h, _c]),
+                             tf.TensorShape([_n_way, _n_query, _w, _h, _c]))
+        elif output_form == OutputForm.FS_SL:
+            output_types = (
+                tf.float32, tf.float32,
+                tf.float32, tf.int32, tf.float32, tf.int32
+            )
+            output_shapes = (
+                tf.TensorShape([_n_way, _n_shot, _w, _h, _c]),
+                tf.TensorShape([_n_way, _n_query, _w, _h, _c]),
+
+                tf.TensorShape([_n_way*_n_shot, _w, _h, _c]),
+                tf.TensorShape([_n_way*_n_shot, self.get_output_size(OutputForm.ROT)]),
+                tf.TensorShape([_n_way*_n_query, _w, _h, _c]),
+                tf.TensorShape([_n_way*_n_query, self.get_output_size(OutputForm.ROT)]),
+            )
+        else:
+            raise NotImplementedError()
+
+        _ds = tf.data.Dataset.from_generator(
+            _gen,
+            output_types=output_types,
+            output_shapes=output_shapes,
+        )
+
+        return _ds
 
     def __iter__(self):
         # TODO: change ça pour pas que ce soit juste train
