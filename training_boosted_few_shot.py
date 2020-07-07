@@ -54,17 +54,17 @@ if __name__ == '__main__':
     few_shot_trainer = FewShotTrainer(
         model_manager=few_shot_learner,
         dataset=mini_image_net,
-        train_mini_batch=1 if cerebus else 1,
+        train_mini_batch=15 if cerebus else 15,
 
         # few shot params
         n_way=way,
         n_test_way=t_way,
         n_shot=shot,
         n_test_shot=t_shot,
-        n_query=1,
+        n_query=15,
         n_test_query=5,
-        n_train_episodes=5,
-        n_val_episodes=0,
+        n_train_episodes=100,
+        n_val_episodes=100,
         n_test_episodes=600,
 
         # callback params
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     )
 
     print(few_shot_trainer.config)
-    few_shot_trainer.train(epochs=1, final_testing=False)
+    few_shot_trainer.train(epochs=300, final_testing=False)
     # few_shot_trainer.test(n=10)
 
     util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name, savefig=not cerebus)

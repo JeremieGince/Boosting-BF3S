@@ -185,12 +185,13 @@ class FewShotTrainer(Trainer):
     def __init__(self, model_manager: NetworkModelManager, dataset: DatasetBase, **kwargs):
         self.train_mini_batch = kwargs.get("train_mini_batch", 1)
         self.n_way = kwargs.get("n_way", 30)
-        assert self.n_way % self.train_mini_batch == 0, "n_way must be a multiple of train_mini_batch"
-
         self.n_test_way = kwargs.get("n_test_way", self.n_way)
         self.n_shot = kwargs.get("n_shot", 5)
         self.n_test_shot = kwargs.get("n_test_shot", self.n_shot)
         self.n_query = kwargs.get("n_query", 1)
+
+        assert self.n_way % self.train_mini_batch == 0, "n_query must be a multiple of train_mini_batch"
+
         self.n_test_query = kwargs.get("n_test_query", self.n_query)
         self.n_train_episodes = kwargs.get("n_train_episodes", 10)
         self.n_val_episodes = kwargs.get("n_val_episodes", 10)
@@ -203,9 +204,9 @@ class FewShotTrainer(Trainer):
 
         self.phase_to_few_shot_params = {
             util.TrainingPhase.TRAIN: {
-                "way": self.n_way // self.train_mini_batch,
+                "way": self.n_way,
                 "shot": self.n_shot,
-                "query": self.n_query
+                "query": self.n_query // self.train_mini_batch
             },
             util.TrainingPhase.VAL: {
                 "way": self.n_test_way,
