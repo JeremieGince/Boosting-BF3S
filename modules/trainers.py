@@ -190,7 +190,7 @@ class FewShotTrainer(Trainer):
         self.n_test_shot = kwargs.get("n_test_shot", self.n_shot)
         self.n_query = kwargs.get("n_query", 1)
 
-        assert self.n_way % self.train_mini_batch == 0, "n_query must be a multiple of train_mini_batch"
+        assert self.n_query % self.train_mini_batch == 0, "n_query must be a multiple of train_mini_batch"
 
         self.n_test_query = kwargs.get("n_test_query", self.n_query)
         self.n_train_episodes = kwargs.get("n_train_episodes", 10)

@@ -49,15 +49,26 @@ class Prototypical(tf.keras.Model):
         self.sl_classifier = sl_classifier
         self.alpha = kwargs.get("alpha", 1.0)
 
+        self.possible_rotations = [0, 90, 180, 270]
+        self.possible_rotations_to_one_hot = {
+            rot: util.c_idx2one_hot(idx, np.zeros(len(self.possible_rotations), dtype=int))
+            for idx, rot in enumerate(self.possible_rotations)
+        }
+        self.possible_k = range(4)
+
     def call(self,  inputs, training=None, mask=None):
+        support, query = inputs
+        loss_few, acc_few = self.call_proto(support, query)
+
         if self.sl_classifier is None:
-            support, query = inputs
-
-            return self.call_proto(support, query)
+            return loss_few, acc_few
         else:
-            support, query, *sl_args = inputs
+            sl_args = self.get_sl_args(support, query)
+            del support
+            del query
 
-            return self.call_proto_sl(support, query, sl_args)
+            loss_sl = self.call_proto_sl(sl_args)
+            return loss_few + self.alpha*loss_sl, acc_few
 
     def call_proto(self, support, query):
         n_class = support.shape[0]
@@ -103,11 +114,7 @@ class Prototypical(tf.keras.Model):
 
         return loss_few, acc_few
 
-    def call_proto_sl(self, support, query, sl_args: list):
-        loss_few, acc_few = self.call_proto(support, query)
-        del support
-        del query
-
+    def call_proto_sl(self, sl_args: list):
         [sl_x, sl_y, sl_test_x, sl_test_y] = sl_args
         sl_embed_x = self.backbone(sl_x)
         del sl_x
@@ -143,5 +150,26 @@ class Prototypical(tf.keras.Model):
         #
         # acc_sl = tf.reduce_mean(sl_eq_t)
 
-        return loss_few + self.alpha*loss_sl, acc_few
+        return loss_sl
+
+    def get_sl_args(self, support, query):
+        _n_way, _n_shot, _w, _h, _c = support.shape
+        _n_way, _n_query, _w, _h, _c = query.shape
+
+        support_reshape = tf.reshape(support, shape=[_n_way * _n_shot, _w, _h, _c])
+        query_reshape = tf.reshape(query, shape=[_n_way * _n_query, _w, _h, _c])
+
+        sl_y_r = np.random.choice(self.possible_k, support_reshape.shape[0])
+        sl_x = tf.map_fn(lambda _i: tf.image.rot90(support_reshape[_i], sl_y_r[_i]),
+                         tf.range(support_reshape.shape[0]), dtype=tf.float32)
+
+        sl_y = tf.cast(tf.one_hot(sl_y_r, len(self.possible_k)), tf.int16)
+
+        sl_test_y_r = np.random.choice(self.possible_k, query_reshape.shape[0])
+        sl_test_x = tf.map_fn(lambda _i: tf.image.rot90(query_reshape[_i], sl_test_y_r[_i]),
+                              tf.range(query_reshape.shape[0]), dtype=tf.float32)
+
+        sl_test_y = tf.cast(tf.one_hot(sl_test_y_r, len(self.possible_k)), tf.int16)
+
+        return [sl_x, sl_y, sl_test_x, sl_test_y]
 

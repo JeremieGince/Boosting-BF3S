@@ -301,7 +301,7 @@ class BoostedFewShotLearner(NetworkModelManager):
         self.img_size = kwargs.get("image_size", 84)
         self.channels = kwargs.get("channels", 3)
         self.input_shape = (self.img_size, self.img_size, self.channels)
-        self.output_form = util.OutputForm.FS_SL
+        self.output_form = util.OutputForm.FS
 
         self._backbone = kwargs.get("backbone", FewShotImgLearner.default_backbone)
         assert self._backbone in NetworkModelManager.available_backbones

@@ -54,7 +54,7 @@ if __name__ == '__main__':
     few_shot_trainer = FewShotTrainer(
         model_manager=few_shot_learner,
         dataset=mini_image_net,
-        train_mini_batch=15 if cerebus else 15,
+        train_mini_batch=1 if cerebus else 1,
 
         # few shot params
         n_way=way,
