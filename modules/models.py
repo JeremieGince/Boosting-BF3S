@@ -60,31 +60,41 @@ class Prototypical(tf.keras.Model):
         self.n_class = None
         self.n_support = None
 
-    def call(self,  inputs, training=None, mask=None):
-        support, query = inputs
-        loss_few, acc_few = self.call_proto(support, query)
+        self.sl_x = None
+        self.sl_y = None
+
+    def call(self,  _query, training=None, mask=None):
+        # loss_few, acc_few = self.call_proto(support, query)
+        loss_few, acc_few = self.apply_query(_query)
 
         if self.sl_classifier is None:
             return loss_few, acc_few
         else:
-            sl_args = self.get_sl_args(support, query)
-            del support
-            del query
-
-            loss_sl = self.call_proto_sl(sl_args)
+            loss_sl = self.call_proto_sl(self.sl_x, self.sl_y, *self.get_sl_set_args(_query))
             return loss_few + self.alpha*loss_sl, acc_few
 
     def set_support(self, support):
         self.n_class = support.shape[0]
         self.n_support = support.shape[1]
-        self.z_prototypes = tf.reduce_mean(self.backbone(support), axis=1)
+        support_reshape = tf.reshape(support, [self.n_class * self.n_support,
+                                               self.w, self.h, self.c])
+        z = self.backbone(support_reshape)
+
+        self.z_prototypes = tf.reduce_mean(
+            tf.reshape(z, [self.n_class, self.n_support, z.shape[-1]])
+            , axis=1
+        )
+
+        if self.sl_classifier is not None:
+            self.sl_x, self.sl_y = self.get_sl_set_args(support)
 
     def apply_query(self, query):
         n_query = query.shape[1]
         y = np.tile(np.arange(self.n_class)[:, np.newaxis], (1, n_query))
         y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
 
-        z_query = self.backbone(query)
+        z_query = self.backbone(tf.reshape(query, [self.n_class * n_query,
+                                                   self.w, self.h, self.c]))
 
         # Calculate distances between query and prototypes
         dists = util.calc_euclidian_dists(z_query, self.z_prototypes)
@@ -148,7 +158,7 @@ class Prototypical(tf.keras.Model):
 
         return loss_few, acc_few
 
-    def call_proto_sl(self, sl_args: list):
+    def call_proto_sl(self, *sl_args):
         [sl_x, sl_y, sl_test_x, sl_test_y] = sl_args
         sl_embed_x = self.backbone(sl_x)
         del sl_x
@@ -212,4 +222,17 @@ class Prototypical(tf.keras.Model):
         sl_test_y = tf.cast(tf.one_hot(sl_test_y_r, len(self.possible_k)), tf.int16)
 
         return [sl_x, sl_y, sl_test_x, sl_test_y]
+
+    def get_sl_set_args(self, _set):
+        _n_way, _n_shot, _w, _h, _c = _set.shape
+
+        _set_reshape = tf.reshape(_set, shape=[_n_way * _n_shot, _w, _h, _c])
+
+        sl_y_r = np.random.choice(self.possible_k, _set_reshape.shape[0])
+        sl_x = tf.map_fn(lambda _i: tf.image.rot90(_set_reshape[_i], sl_y_r[_i]),
+                         tf.range(_set_reshape.shape[0]), dtype=tf.float32)
+
+        sl_y = tf.cast(tf.one_hot(sl_y_r, len(self.possible_k)), tf.int16)
+
+        return sl_x, sl_y
 
