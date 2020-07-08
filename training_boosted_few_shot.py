@@ -61,7 +61,7 @@ if __name__ == '__main__':
         n_test_way=t_way,
         n_shot=shot,
         n_test_shot=t_shot,
-        n_query=15,
+        n_query=5,
         n_test_query=5,
         n_train_episodes=100,
         n_val_episodes=100,
