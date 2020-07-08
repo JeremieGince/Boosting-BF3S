@@ -255,9 +255,11 @@ class FewShotTrainer(Trainer):
 
                 # split the batch in mini-batch with gradient accumulation for memory efficiency
                 for mini_batch_idx in range(self.train_mini_batch):
+                    _support = next(_data_itr)
+                    self.model.set_support(_support)
                     with tf.GradientTape() as tape:
-                        inputs = next(_data_itr)
-                        _loss, _acc = self.model.call(inputs)  # TODO: ask ModelManager to get metrics dict as logs
+                        _query = next(_data_itr)
+                        _loss, _acc = self.model.call(_query)  # TODO: ask ModelManager to get metrics dict as logs
                     grads = tape.gradient(_loss, self.model.trainable_variables)
                     [accum_grads[i].assign_add(grad) for i, grad in enumerate(grads)]
                     accum_loss += _loss
@@ -267,8 +269,11 @@ class FewShotTrainer(Trainer):
                 acc = np.mean(accum_acc)
                 self.model.optimizer.apply_gradients(zip(accum_grads, self.model.trainable_variables))
             elif phase == util.TrainingPhase.VAL:
-                inputs = next(_data_itr)
-                loss, acc = self.model.call(inputs)
+                _support = next(_data_itr)
+                self.model.set_support(_support)
+
+                _query = next(_data_itr)
+                loss, acc = self.model.call(_query)
             else:
                 raise NotImplementedError(f"Training phase: {phase} not implemented")
 
