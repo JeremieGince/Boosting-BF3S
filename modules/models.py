@@ -56,6 +56,10 @@ class Prototypical(tf.keras.Model):
         }
         self.possible_k = range(4)
 
+        self.z_prototypes = None
+        self.n_class = None
+        self.n_support = None
+
     def call(self,  inputs, training=None, mask=None):
         support, query = inputs
         loss_few, acc_few = self.call_proto(support, query)
@@ -69,6 +73,36 @@ class Prototypical(tf.keras.Model):
 
             loss_sl = self.call_proto_sl(sl_args)
             return loss_few + self.alpha*loss_sl, acc_few
+
+    def set_support(self, support):
+        self.n_class = support.shape[0]
+        self.n_support = support.shape[1]
+        self.z_prototypes = tf.reduce_mean(self.backbone(support), axis=1)
+
+    def apply_query(self, query):
+        n_query = query.shape[1]
+        y = np.tile(np.arange(self.n_class)[:, np.newaxis], (1, n_query))
+        y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
+
+        z_query = self.backbone(query)
+
+        # Calculate distances between query and prototypes
+        dists = util.calc_euclidian_dists(z_query, self.z_prototypes)
+
+        # log softmax of calculated distances
+        log_p_y = tf.nn.log_softmax(-dists, axis=-1)
+        log_p_y = tf.reshape(log_p_y, [self.n_class, n_query, -1])
+
+        loss_few = -tf.reduce_mean(tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, log_p_y), axis=-1), [-1]))
+        eq = tf.cast(
+            tf.equal(
+                tf.cast(tf.argmax(log_p_y, axis=-1), tf.int32),
+                tf.cast(y, tf.int32)
+            ), tf.float32
+        )
+        acc_few = tf.reduce_mean(eq)
+
+        return loss_few, acc_few
 
     def call_proto(self, support, query):
         n_class = support.shape[0]
