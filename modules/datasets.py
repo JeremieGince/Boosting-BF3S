@@ -240,7 +240,8 @@ class MiniImageNetDataset(DatasetBase):
                     query[_i] = _data[i_class, selected[_n_shot:]]
 
                 if output_form == OutputForm.FS:
-                    yield support, query
+                    yield support
+                    yield query
                 elif output_form == OutputForm.FS_SL:
                     support_reshape = np.reshape(support, newshape=[_n_way*_n_shot, _w, _h, _c])
                     query_reshape = np.reshape(query, newshape=[_n_way * _n_query, _w, _h, _c])
@@ -270,9 +271,11 @@ class MiniImageNetDataset(DatasetBase):
                     raise NotImplementedError()
 
         if output_form == OutputForm.FS:
-            output_types = (tf.float32, tf.float32)
-            output_shapes = (tf.TensorShape([_n_way, _n_shot, _w, _h, _c]),
-                             tf.TensorShape([_n_way, _n_query, _w, _h, _c]))
+            # output_types = (tf.float32, tf.float32)
+            # output_shapes = (tf.TensorShape([_n_way, _n_shot, _w, _h, _c]),
+            #                  tf.TensorShape([_n_way, _n_query, _w, _h, _c]))
+            output_types = tf.float32
+            output_shapes = tf.TensorShape([_n_way, None, _w, _h, _c])
         elif output_form == OutputForm.FS_SL:
             output_types = (
                 tf.float32, tf.float32,
