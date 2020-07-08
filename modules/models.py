@@ -129,7 +129,13 @@ class Prototypical(tf.keras.Model):
         del sl_embed_test_x
 
         lb0 = binary_crossentropy(sl_y, sl_y_pred)
+        del sl_y
+        del sl_y_pred
+
         lb1 = binary_crossentropy(sl_test_y, sl_test_y_pred)
+        del sl_test_y
+        del sl_test_y_pred
+
         loss_sl = tf.reduce_mean(lb0) + tf.reduce_mean(lb1)
 
         # sl_eq = tf.cast(
