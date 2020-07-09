@@ -34,9 +34,14 @@ if __name__ == '__main__':
         image_size=mini_image_net.image_size,
         backbone=backbone,
         sl_output_size=mini_image_net.get_output_size(util.OutputForm.ROT),
-        optimizer_args={},
-        learning_rate=1e-3,
-        optimizer=tf.keras.optimizers.Adam,
+        hidden_neurons=[640, ],
+        learning_rate=0.1,
+        optimizer_args={
+            "momentum": 0.9,
+            "weight_decay": 5e-4,
+            "nesterov": True,
+        },
+        optimizer=tf.keras.optimizers.SGD,
     )
     few_shot_learner.build_and_compile()
 
