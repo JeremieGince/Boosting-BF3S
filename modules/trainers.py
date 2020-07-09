@@ -257,9 +257,13 @@ class FewShotTrainer(Trainer):
                 for mini_batch_idx in range(self.train_mini_batch):
                     _support = next(_data_itr)
                     self.model.set_support(_support)
+                    del _support
+
                     with tf.GradientTape() as tape:
                         _query = next(_data_itr)
                         _loss, _acc = self.model.call(_query)  # TODO: ask ModelManager to get metrics dict as logs
+                        del _query
+
                     grads = tape.gradient(_loss, self.model.trainable_variables)
                     [accum_grads[i].assign_add(grad) for i, grad in enumerate(grads)]
                     accum_loss += _loss
@@ -271,6 +275,7 @@ class FewShotTrainer(Trainer):
             elif phase == util.TrainingPhase.VAL:
                 _support = next(_data_itr)
                 self.model.set_support(_support)
+                del _support
 
                 _query = next(_data_itr)
                 loss, acc = self.model.call(_query)
