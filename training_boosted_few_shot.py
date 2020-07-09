@@ -38,7 +38,7 @@ if __name__ == '__main__':
         learning_rate=0.1,
         optimizer_args={
             "momentum": 0.9,
-            "weight_decay": 5e-4,
+            "decay": 5e-4,
             "nesterov": True,
         },
         optimizer=tf.keras.optimizers.SGD,
