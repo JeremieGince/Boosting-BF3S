@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     few_shot_learner = BoostedFewShotLearner(
         name=f"prototypical_boosted_few_shot_rot_learner-{backbone}_backbone_"
-             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot{'_c' if cerebus else ''}",
+             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot{'_c' if cerebus else ''}_SGD",
         image_size=mini_image_net.image_size,
         backbone=backbone,
         sl_output_size=mini_image_net.get_output_size(util.OutputForm.ROT),
