@@ -298,6 +298,10 @@ class BoostedFewShotLearner(NetworkModelManager):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
+        tf.keras.mixed_precision.experimental.set_policy(policy)
+
         self.img_size = kwargs.get("image_size", 84)
         self.channels = kwargs.get("channels", 3)
         self.input_shape = (self.img_size, self.img_size, self.channels)
@@ -334,7 +338,7 @@ class BoostedFewShotLearner(NetworkModelManager):
                 for h in self._hidden_neurons
             ],
             Dense(self.sl_output_size, name="sl_output_layer"),
-            Softmax(),
+            Softmax(dtype=tf.float32),
         ]
 
     def build(self):
