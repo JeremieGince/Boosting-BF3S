@@ -89,8 +89,6 @@ class Prototypical(tf.keras.Model):
         }
         self.possible_k = range(4)
 
-        self.support_test = None
-
         self.z_prototypes = None
         self.n_class = None
         self.n_support = None
@@ -109,7 +107,6 @@ class Prototypical(tf.keras.Model):
             return loss_few + self.alpha*loss_sl, acc_few
 
     def set_support(self, support):
-        # self.support_test = support
         self.n_class = support.shape[0]
         self.n_support = support.shape[1]
         support_reshape = tf.reshape(support, [self.n_class * self.n_support,
@@ -125,9 +122,6 @@ class Prototypical(tf.keras.Model):
             self.sl_x, self.sl_y = self.get_sl_set_args(support)
 
     def apply_query(self, query):
-        # testing
-        # self.call_proto(self.support_test, query)
-        #######################
         n_query = query.shape[1]
         y = np.tile(np.arange(self.n_class)[:, np.newaxis], (1, n_query))
         y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
