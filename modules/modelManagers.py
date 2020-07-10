@@ -260,6 +260,10 @@ class FewShotImgLearner(NetworkModelManager):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
+        tf.keras.mixed_precision.experimental.set_policy(policy)
+
         self.img_size = kwargs.get("image_size", 84)
         self.channels = kwargs.get("channels", 3)
         self.output_form = util.OutputForm.FS
