@@ -34,7 +34,8 @@ if __name__ == '__main__':
         image_size=mini_image_net.image_size,
         backbone=backbone,
         sl_output_size=mini_image_net.get_output_size(util.OutputForm.ROT),
-        hidden_neurons=[640, ],
+        alpha=0.1,
+        hidden_neurons=[640 for _ in range(4)],
         learning_rate=1e-3,
         optimizer_args={
             "momentum": 0.9,
