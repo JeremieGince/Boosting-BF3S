@@ -33,6 +33,9 @@ class NetworkModelManager:
     }
 
     def __init__(self, **kwargs):
+        policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
+        tf.keras.mixed_precision.experimental.set_policy(policy)
+
         self.name = kwargs.get("name", "network_model")
         os.makedirs("training_data/" + self.name, exist_ok=True)
         self.checkpoint_path = "training_data/" + self.name + "/cp-weights.h5"
@@ -235,7 +238,7 @@ class SelfLearnerWithImgRotation(NetworkModelManager):
                 for h in self._hidden_neurons
             ],
             Dense(self.output_size, name="output_layer"),
-            Softmax(),
+            Softmax(dtype=tf.float32),
         )
 
     def build(self):
@@ -260,9 +263,6 @@ class FewShotImgLearner(NetworkModelManager):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
-        tf.keras.mixed_precision.experimental.set_policy(policy)
 
         self.img_size = kwargs.get("image_size", 84)
         self.channels = kwargs.get("channels", 3)
@@ -303,9 +303,6 @@ class BoostedFewShotLearner(NetworkModelManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
-        tf.keras.mixed_precision.experimental.set_policy(policy)
-
         self.img_size = kwargs.get("image_size", 84)
         self.channels = kwargs.get("channels", 3)
         self.input_shape = (self.img_size, self.img_size, self.channels)
@@ -327,6 +324,7 @@ class BoostedFewShotLearner(NetworkModelManager):
         self.sl_output_size = kwargs.get("sl_output_size", 1)
         self._nb_hidden_layer: int = kwargs.get("nb_hidden_layers", 1)
         self._hidden_neurons: list = kwargs.get("hidden_neurons", [4096 for _ in range(self._nb_hidden_layer)])
+        self.alpha = kwargs.get("alpha")
 
         assert self._nb_hidden_layer == len(self._hidden_neurons)
 
@@ -357,6 +355,7 @@ class BoostedFewShotLearner(NetworkModelManager):
             c=self.channels,
             backbone=_backbone,
             sl_classifier=_cls,
+            alpha=self.alpha,
         )
 
         return self.model
