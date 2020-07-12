@@ -29,20 +29,23 @@ if __name__ == '__main__':
     )
 
     few_shot_learner = BoostedFewShotLearner(
-        name=f"prototypical_boosted_few_shot_rot_learner-{backbone}_backbone_"
-             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot{'_c' if cerebus else ''}_SGD",
+        name=f"prototypical_boosted_few_shot_rot_learner-{backbone}_"
+             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_Adam_a00"
+             f"{'_c' if cerebus else ''}",
         image_size=mini_image_net.image_size,
         backbone=backbone,
         sl_output_size=mini_image_net.get_output_size(util.OutputForm.ROT),
-        alpha=0.1,
+        alpha=0.0,
         hidden_neurons=[640 for _ in range(4)],
         learning_rate=1e-3,
-        optimizer_args={
-            "momentum": 0.9,
-            "decay": 5e-4,
-            "nesterov": True,
-        },
-        optimizer=tf.keras.optimizers.SGD,
+        # optimizer_args={
+        #     "momentum": 0.9,
+        #     "decay": 5e-4,
+        #     "nesterov": True,
+        # },
+        # optimizer=tf.keras.optimizers.SGD,
+        optimizer_args={},
+        optimizer=tf.keras.optimizers.Adam,
     )
     few_shot_learner.build_and_compile()
 
