@@ -10,7 +10,7 @@ import sys
 
 if __name__ == '__main__':
 
-    way = 30
+    way = 6
     t_way = 5
     shot = 5
     t_shot = 5
