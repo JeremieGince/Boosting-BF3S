@@ -193,25 +193,17 @@ class Prototypical(tf.keras.Model):
 
     def call_proto_sl(self, *sl_args):
         [sl_x, sl_y, sl_test_x, sl_test_y] = sl_args
-        sl_embed_x = self.backbone(sl_x)
-        del sl_x
 
-        sl_embed_test_x = self.backbone(sl_test_x)
-        del sl_test_x
-
-        sl_y_pred = self.sl_classifier(sl_embed_x)
-        del sl_embed_x
-
-        sl_test_y_pred = self.sl_classifier(sl_embed_test_x)
-        del sl_embed_test_x
+        sl_y_pred = self.sl_classifier(self.backbone(sl_x))
+        sl_test_y_pred = self.sl_classifier(self.backbone(sl_test_x))
 
         lb0 = binary_crossentropy(sl_y, sl_y_pred)
-        del sl_y
-        del sl_y_pred
+        # del sl_y
+        # del sl_y_pred
 
         lb1 = binary_crossentropy(sl_test_y, sl_test_y_pred)
-        del sl_test_y
-        del sl_test_y_pred
+        # del sl_test_y
+        # del sl_test_y_pred
 
         loss_sl = tf.reduce_mean(lb0) + tf.reduce_mean(lb1)
 
