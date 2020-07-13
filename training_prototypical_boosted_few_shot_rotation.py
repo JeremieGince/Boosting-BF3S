@@ -10,7 +10,7 @@ import sys
 
 if __name__ == '__main__':
 
-    way = 6
+    way = 30
     t_way = 5
     shot = 5
     t_shot = 5
@@ -29,10 +29,10 @@ if __name__ == '__main__':
     )
 
     few_shot_learner = BoostedFewShotLearner(
-        # name=f"prototypical_boosted_few_shot_rot_learner-{backbone}_"
-        #      f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_Adam_a00_overfit"
-        #      f"{'_c' if cerebus else ''}",
-        name="proto_test",
+        name=f"prototypical_boosted_few_shot_rot_learner-{backbone}_"
+             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_Adam_a00"
+             f"{'_c' if cerebus else ''}",
+        # name="proto_test",
         image_size=mini_image_net.image_size,
         backbone=backbone,
         sl_output_size=mini_image_net.get_output_size(util.OutputForm.ROT),

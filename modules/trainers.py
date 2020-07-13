@@ -249,29 +249,16 @@ class FewShotTrainer(Trainer):
             # Optimize the model
             # Forward & update gradients
             if phase == util.TrainingPhase.TRAIN:
-                accum_grads = [tf.Variable(tf.zeros_like(tv), trainable=False) for tv in self.model.trainable_variables]
-                accum_loss = 0.0
-                accum_acc = []
-
-                # split the batch in mini-batch with gradient accumulation for memory efficiency
-                for mini_batch_idx in range(self.train_mini_batch):
+                with tf.GradientTape() as tape:
                     _support = next(_data_itr)
                     self.model.set_support(_support)
-                    # del _support
 
-                    with tf.GradientTape() as tape:
-                        _query = next(_data_itr)
-                        _loss, _acc = self.model.call(_query)  # TODO: ask ModelManager to get metrics dict as logs
-                        # del _query
+                    _query = next(_data_itr)
+                    loss, acc = self.model.call(_query)  # TODO: ask ModelManager to get metrics dict as logs
+                    # del _query
 
-                    grads = tape.gradient(_loss, self.model.trainable_variables)
-                    [accum_grads[i].assign_add(grad) for i, grad in enumerate(grads)]
-                    accum_loss += _loss
-                    accum_acc.append(_acc)
-
-                loss = accum_loss
-                acc = np.mean(accum_acc)
-                self.model.optimizer.apply_gradients(zip(accum_grads, self.model.trainable_variables))
+                grads = tape.gradient(loss, self.model.trainable_variables)
+                self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
             elif phase == util.TrainingPhase.VAL:
                 _support = next(_data_itr)
                 self.model.set_support(_support)

@@ -79,7 +79,6 @@ class Prototypical(tf.keras.Model):
         super(Prototypical, self).__init__()
         self.w, self.h, self.c = w, h, c
         self.backbone = backbone
-        # self.backbone_sl = tf.keras.models.Sequential(tf.keras.models.clone_model(backbone), name="backbone_sl_test")
 
         self.sl_classifier = sl_classifier
         self.alpha = kwargs.get("alpha", 1.0)
@@ -104,10 +103,8 @@ class Prototypical(tf.keras.Model):
         if self.sl_classifier is None:
             return loss_few, acc_few
         else:
-            loss_sl = self.call_proto_sl(self.sl_x, self.sl_y, *self.get_sl_set_args(_query))
+            loss_sl = self.call_proto_sl(self.sl_x, self.sl_y, *self.get_sl_set_args(tf.identity(_query)))
             return loss_few + self.alpha*loss_sl, acc_few
-            # print(loss_few, acc_few)
-            # return loss_few, acc_few
 
     def set_support(self, support):
         self.n_class = support.shape[0]
@@ -122,7 +119,7 @@ class Prototypical(tf.keras.Model):
         )
 
         if self.sl_classifier is not None:
-            self.sl_x, self.sl_y = self.get_sl_set_args(support)
+            self.sl_x, self.sl_y = self.get_sl_set_args(tf.identity(support))
 
     def apply_query(self, query):
         n_query = query.shape[1]
@@ -209,7 +206,6 @@ class Prototypical(tf.keras.Model):
         # del sl_test_y_pred
 
         loss_sl = (tf.reduce_mean(lb0) + tf.reduce_mean(lb1)) / 2
-        # loss_sl = 0.0
 
         # sl_eq = tf.cast(
         #     tf.equal(
@@ -257,11 +253,9 @@ class Prototypical(tf.keras.Model):
 
         _set_reshape = tf.reshape(_set, shape=[_n_way * _n_shot, _w, _h, _c])
 
-        # sl_y_r = np.random.choice(self.possible_k, _set_reshape.shape[0])
-        sl_y_r = np.zeros(shape=_set_reshape.shape[0], dtype=int)
-        # sl_x = tf.map_fn(lambda _i: tf.image.rot90(_set_reshape[_i], sl_y_r[_i]),
-        #                  tf.range(_set_reshape.shape[0]), dtype=tf.float32)
-        sl_x = _set_reshape
+        sl_y_r = np.random.choice(self.possible_k, _set_reshape.shape[0])
+        sl_x = tf.map_fn(lambda _i: tf.image.rot90(_set_reshape[_i], sl_y_r[_i]),
+                         tf.range(_set_reshape.shape[0]), dtype=tf.float32)
 
         sl_y = tf.cast(tf.one_hot(sl_y_r, len(self.possible_k)), tf.int16)
 
