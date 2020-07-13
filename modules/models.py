@@ -79,7 +79,7 @@ class Prototypical(tf.keras.Model):
         super(Prototypical, self).__init__()
         self.w, self.h, self.c = w, h, c
         self.backbone = backbone
-        self.backbone_sl = tf.keras.models.Sequential(tf.keras.models.clone_model(backbone), name="backbone_sl_test")
+        # self.backbone_sl = tf.keras.models.Sequential(tf.keras.models.clone_model(backbone), name="backbone_sl_test")
 
         self.sl_classifier = sl_classifier
         self.alpha = kwargs.get("alpha", 1.0)
@@ -197,8 +197,8 @@ class Prototypical(tf.keras.Model):
     def call_proto_sl(self, *sl_args):
         [sl_x, sl_y, sl_test_x, sl_test_y] = sl_args
 
-        sl_y_pred = self.sl_classifier(self.backbone_sl(sl_x))
-        sl_test_y_pred = self.sl_classifier(self.backbone_sl(sl_test_x))
+        sl_y_pred = self.sl_classifier(self.backbone(sl_x))
+        sl_test_y_pred = self.sl_classifier(self.backbone(sl_test_x))
 
         lb0 = categorical_crossentropy(sl_y, sl_y_pred)
         # del sl_y
