@@ -325,7 +325,7 @@ class BoostedFewShotLearner(NetworkModelManager):
         self._nb_hidden_layer: int = kwargs.get("nb_hidden_layers", 1)
         self._hidden_neurons: list = kwargs.get("hidden_neurons", [4096 for _ in range(self._nb_hidden_layer)])
         self._nb_hidden_layer = len(self._hidden_neurons)
-        self.alpha = kwargs.get("alpha")
+        self.alpha = kwargs.get("alpha", 1.0)
 
         self.sl_classifier_layers = [
             Flatten(),
