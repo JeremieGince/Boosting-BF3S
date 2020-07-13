@@ -5,7 +5,8 @@ import tensorflow as tf
 from tensorflow.keras.layers import Flatten, Dense, BatchNormalization, Softmax, ReLU, Input
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.losses import binary_crossentropy
+from tensorflow.keras.losses import categorical_crossentropy
+from copy import deepcopy
 
 import modules.util as util
 import modules.backbones as backbones
@@ -78,6 +79,7 @@ class Prototypical(tf.keras.Model):
         super(Prototypical, self).__init__()
         self.w, self.h, self.c = w, h, c
         self.backbone = backbone
+        self.backbone_sl = tf.keras.models.Sequential(tf.keras.models.clone_model(backbone), name="backbone_sl_test")
 
         self.sl_classifier = sl_classifier
         self.alpha = kwargs.get("alpha", 1.0)
@@ -97,7 +99,6 @@ class Prototypical(tf.keras.Model):
         self.sl_y = None
 
     def call(self,  _query, training=None, mask=None):
-        # loss_few, acc_few = self.call_proto(support, query)
         loss_few, acc_few = self.apply_query(_query)
 
         if self.sl_classifier is None:
@@ -105,6 +106,8 @@ class Prototypical(tf.keras.Model):
         else:
             loss_sl = self.call_proto_sl(self.sl_x, self.sl_y, *self.get_sl_set_args(_query))
             return loss_few + self.alpha*loss_sl, acc_few
+            # print(loss_few, acc_few)
+            # return loss_few, acc_few
 
     def set_support(self, support):
         self.n_class = support.shape[0]
@@ -194,18 +197,19 @@ class Prototypical(tf.keras.Model):
     def call_proto_sl(self, *sl_args):
         [sl_x, sl_y, sl_test_x, sl_test_y] = sl_args
 
-        sl_y_pred = self.sl_classifier(self.backbone(sl_x))
-        sl_test_y_pred = self.sl_classifier(self.backbone(sl_test_x))
+        sl_y_pred = self.sl_classifier(self.backbone_sl(sl_x))
+        sl_test_y_pred = self.sl_classifier(self.backbone_sl(sl_test_x))
 
-        lb0 = binary_crossentropy(sl_y, sl_y_pred)
+        lb0 = categorical_crossentropy(sl_y, sl_y_pred)
         # del sl_y
         # del sl_y_pred
 
-        lb1 = binary_crossentropy(sl_test_y, sl_test_y_pred)
+        lb1 = categorical_crossentropy(sl_test_y, sl_test_y_pred)
         # del sl_test_y
         # del sl_test_y_pred
 
-        loss_sl = tf.reduce_mean(lb0) + tf.reduce_mean(lb1)
+        loss_sl = (tf.reduce_mean(lb0) + tf.reduce_mean(lb1)) / 2
+        # loss_sl = 0.0
 
         # sl_eq = tf.cast(
         #     tf.equal(
@@ -253,9 +257,11 @@ class Prototypical(tf.keras.Model):
 
         _set_reshape = tf.reshape(_set, shape=[_n_way * _n_shot, _w, _h, _c])
 
-        sl_y_r = np.random.choice(self.possible_k, _set_reshape.shape[0])
-        sl_x = tf.map_fn(lambda _i: tf.image.rot90(_set_reshape[_i], sl_y_r[_i]),
-                         tf.range(_set_reshape.shape[0]), dtype=tf.float32)
+        # sl_y_r = np.random.choice(self.possible_k, _set_reshape.shape[0])
+        sl_y_r = np.zeros(shape=_set_reshape.shape[0], dtype=int)
+        # sl_x = tf.map_fn(lambda _i: tf.image.rot90(_set_reshape[_i], sl_y_r[_i]),
+        #                  tf.range(_set_reshape.shape[0]), dtype=tf.float32)
+        sl_x = _set_reshape
 
         sl_y = tf.cast(tf.one_hot(sl_y_r, len(self.possible_k)), tf.int16)
 

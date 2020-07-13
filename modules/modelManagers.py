@@ -282,8 +282,6 @@ class FewShotImgLearner(NetworkModelManager):
 
     def build(self):
         self.model = Prototypical(
-            # n_query=,
-            # n_support=,
             w=self.img_size,
             h=self.img_size,
             c=self.channels,
@@ -361,7 +359,7 @@ class BoostedFewShotLearner(NetworkModelManager):
 
     @staticmethod
     def loss_function(y_true, y_pred, **kwargs):
-        return tf.keras.losses.binary_crossentropy(y_true, y_pred, from_logits=kwargs.get("from_logits", False))
+        return tf.keras.losses.categorical_crossentropy(y_true, y_pred, from_logits=kwargs.get("from_logits", False))
 
 
 if __name__ == '__main__':
