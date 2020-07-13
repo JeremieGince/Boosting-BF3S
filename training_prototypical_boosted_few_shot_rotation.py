@@ -10,7 +10,7 @@ import sys
 
 if __name__ == '__main__':
 
-    way = 30
+    way = 6
     t_way = 5
     shot = 5
     t_shot = 5
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     )
 
     print(few_shot_trainer.config)
-    few_shot_trainer.train(epochs=300, final_testing=False)
-    few_shot_trainer.test(n=10)
+    few_shot_trainer.train(epochs=5, final_testing=False)
+    few_shot_trainer.test(n=1)
 
     util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name, savefig=not cerebus)
