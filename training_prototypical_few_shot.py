@@ -30,7 +30,8 @@ if __name__ == '__main__':
 
     few_shot_learner = FewShotImgLearner(
         name=f"prototypical_few_shot_learner-{backbone}_"
-             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_085{'_c' if cerebus else ''}",
+             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_085_overfit"
+             f"{'_c' if cerebus else ''}",
         image_size=mini_image_net.image_size,
         backbone=backbone,
         optimizer_args={},
