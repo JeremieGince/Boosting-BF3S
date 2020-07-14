@@ -98,13 +98,7 @@ class Prototypical(tf.keras.Model):
         self.sl_y = None
 
     def call(self,  _query, training=None, mask=None):
-        loss_few, acc_few = self.apply_query(_query)
-
-        if self.sl_classifier is None:
-            return loss_few, acc_few
-        else:
-            loss_sl = self.call_proto_sl(self.sl_x, self.sl_y, *self.get_sl_set_args(tf.identity(_query)))
-            return loss_few + self.alpha*loss_sl, acc_few
+        return self.apply_query(_query)
 
     def set_support(self, support):
         self.n_class = support.shape[0]
@@ -125,7 +119,16 @@ class Prototypical(tf.keras.Model):
         if self.sl_classifier is not None:
             self.sl_x, self.sl_y = self.get_sl_set_args(tf.identity(support))
 
-    def apply_query(self, query):
+    def apply_query(self, _query):
+        loss_few, acc_few = self.apply_query_proto(_query)
+
+        if self.sl_classifier is None:
+            return loss_few, acc_few
+        else:
+            loss_sl = self.call_proto_sl(self.sl_x, self.sl_y, *self.get_sl_set_args(tf.identity(_query)))
+            return loss_few + self.alpha * loss_sl, acc_few
+
+    def apply_query_proto(self, query):
         n_query = query.shape[1]
         y = np.tile(np.arange(self.n_class)[:, np.newaxis], (1, n_query))
         y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)

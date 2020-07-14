@@ -254,7 +254,7 @@ class FewShotTrainer(Trainer):
                     self.model.set_support(_support)
 
                     _query = next(_data_itr)
-                    loss, acc = self.model.call(_query)  # TODO: ask ModelManager to get metrics dict as logs
+                    loss, acc = self.model.apply_query(_query)  # TODO: ask ModelManager to get metrics dict as logs
 
                     # loss, acc = self.model.call_proto(_support, _query)
 
@@ -266,7 +266,7 @@ class FewShotTrainer(Trainer):
                 del _support
 
                 _query = next(_data_itr)
-                loss, acc = self.model.call(_query)
+                loss, acc = self.model.apply_query(_query)
             else:
                 raise NotImplementedError(f"Training phase: {phase} not implemented")
 
@@ -308,12 +308,10 @@ class FewShotTrainer(Trainer):
             _data_itr = iter(self.data_generators[phase])
             for episode_idx in range(self.n_test_episodes):
                 _support = next(_data_itr)
-                # self.model.set_support(_support)
+                self.model.set_support(_support)
 
                 _query = next(_data_itr)
-                # loss, acc = self.model.call(_query)
-
-                loss, acc = self.model.call_proto(_support, _query)
+                loss, acc = self.model.apply_query(_query)
 
                 # Track progress
                 # TODO: get metrics automatically
