@@ -10,7 +10,7 @@ import sys
 
 if __name__ == '__main__':
 
-    way = 30
+    way = 6
     t_way = 5
     shot = 5
     t_shot = 5
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     few_shot_learner = FewShotImgLearner(
         name=f"prototypical_few_shot_learner-{backbone}_"
-             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_085_overfit"
+             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_085_testfloat32"
              f"{'_c' if cerebus else ''}",
         image_size=mini_image_net.image_size,
         backbone=backbone,
