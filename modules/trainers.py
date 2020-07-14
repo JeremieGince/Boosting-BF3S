@@ -251,10 +251,12 @@ class FewShotTrainer(Trainer):
             if phase == util.TrainingPhase.TRAIN:
                 with tf.GradientTape() as tape:
                     _support = next(_data_itr)
-                    self.model.set_support(_support)
+                    # self.model.set_support(_support)
 
                     _query = next(_data_itr)
-                    loss, acc = self.model.call(_query)  # TODO: ask ModelManager to get metrics dict as logs
+                    # loss, acc = self.model.call(_query)  # TODO: ask ModelManager to get metrics dict as logs
+
+                    loss, acc = self.model.call_proto(_support, _query)
 
                 grads = tape.gradient(loss, self.model.trainable_variables)
                 self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
