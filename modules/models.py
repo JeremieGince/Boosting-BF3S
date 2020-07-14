@@ -111,6 +111,10 @@ class Prototypical(tf.keras.Model):
         self.n_support = support.shape[1]
         support_reshape = tf.reshape(support, [self.n_class * self.n_support,
                                                self.w, self.h, self.c])
+
+        # correct indices of support samples (just natural order)
+        target_inds = tf.reshape(tf.range(self.n_class), [self.n_class, 1])
+
         z = self.backbone(support_reshape)
 
         self.z_prototypes = tf.reduce_mean(
@@ -125,6 +129,10 @@ class Prototypical(tf.keras.Model):
         n_query = query.shape[1]
         y = np.tile(np.arange(self.n_class)[:, np.newaxis], (1, n_query))
         y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
+
+        # correct indices of support samples (just natural order)
+        target_inds = tf.reshape(tf.range(self.n_class), [self.n_class, 1])
+        target_inds = tf.tile(target_inds, [1, n_query])
 
         z_query = self.backbone(tf.reshape(query, [self.n_class * n_query,
                                                    self.w, self.h, self.c]))
