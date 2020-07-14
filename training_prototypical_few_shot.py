@@ -71,7 +71,7 @@ if __name__ == '__main__':
     )
 
     print(few_shot_trainer.config)
-    few_shot_trainer.train(epochs=300, final_testing=False)
+    # few_shot_trainer.train(epochs=300, final_testing=False)
     few_shot_trainer.test(n=100)
 
     util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name, savefig=not cerebus)

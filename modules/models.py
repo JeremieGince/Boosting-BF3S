@@ -314,8 +314,8 @@ class CosineClassifier(tf.keras.Model):
         }
         self.possible_k = range(4)
 
-        # self.weight_base = tf.Tensor()
-        # self.weight_novel = tf.Tensor()
+        self.weight_base = None
+        self.weight_novel = None
         self.n_class = None
         self.n_support = None
 
