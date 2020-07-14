@@ -26,7 +26,7 @@ def conv_4_64(input_shape, *args, **kwargs):
             tf.keras.layers.ReLU(),
             tf.keras.layers.MaxPool2D((2, 2)),
 
-            Flatten()],
+            Flatten(dtype=tf.float32)],
             name="Conv-4-64"
         )
 

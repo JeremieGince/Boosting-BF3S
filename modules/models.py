@@ -185,7 +185,7 @@ class Prototypical(tf.keras.Model):
         dists = util.calc_euclidian_dists(z_query, z_prototypes)
 
         # log softmax of calculated distances
-        log_p_y = tf.nn.log_softmax(-dists, axis=-1)
+        log_p_y = tf.nn.log_softmax(-tf.cast(dists, tf.float32), axis=-1)
         log_p_y = tf.reshape(log_p_y, [n_class, n_query, -1])
 
         loss_few = -tf.reduce_mean(tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, log_p_y), axis=-1), [-1]))

@@ -33,8 +33,8 @@ class NetworkModelManager:
     }
 
     def __init__(self, **kwargs):
-        # policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
-        # tf.keras.mixed_precision.experimental.set_policy(policy)
+        policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
+        tf.keras.mixed_precision.experimental.set_policy(policy)
 
         self.name = kwargs.get("name", "network_model")
         os.makedirs("training_data/" + self.name, exist_ok=True)
