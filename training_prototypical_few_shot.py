@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     few_shot_learner = FewShotImgLearner(
         name=f"prototypical_few_shot_learner-{backbone}_"
-             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_085_float16_trsplit"
+             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_085"
              f"{'_c' if cerebus else ''}",
         image_size=mini_image_net.image_size,
         backbone=backbone,
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     )
 
     print(few_shot_trainer.config)
-    few_shot_trainer.train(epochs=40, final_testing=False)
+    few_shot_trainer.train(epochs=300, final_testing=False)
     few_shot_trainer.test(n=10)
 
     util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name, savefig=not cerebus)

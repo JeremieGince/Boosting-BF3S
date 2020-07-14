@@ -256,8 +256,6 @@ class FewShotTrainer(Trainer):
                     _query = next(_data_itr)
                     loss, acc = self.model.apply_query(_query)  # TODO: ask ModelManager to get metrics dict as logs
 
-                    # loss, acc = self.model.call_proto(_support, _query)
-
                 grads = tape.gradient(loss, self.model.trainable_variables)
                 self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
             elif phase == util.TrainingPhase.VAL:
