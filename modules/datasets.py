@@ -241,11 +241,11 @@ class MiniImageNetDataset(DatasetBase):
                     query[_i] = _data[i_class, selected[_n_shot:]]
 
                 if output_form == OutputForm.FS:
-                    while True:
-                        yield deepcopy(support)
-                        yield deepcopy(query)
-                    # yield support
-                    # yield query
+                    # while True:
+                    #     yield deepcopy(support)
+                    #     yield deepcopy(query)
+                    yield support
+                    yield query
                 elif output_form == OutputForm.FS_SL:
                     support_reshape = np.reshape(support, newshape=[_n_way*_n_shot, _w, _h, _c])
                     query_reshape = np.reshape(query, newshape=[_n_way * _n_query, _w, _h, _c])
