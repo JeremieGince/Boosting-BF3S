@@ -30,13 +30,13 @@ if __name__ == '__main__':
 
     few_shot_learner = BoostedFewShotLearner(
         name=f"prototypical_boosted_few_shot_rot_learner-{backbone}_"
-             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_Adam_a010_float16"
+             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_Adam_a050_float16"
              f"{'_c' if cerebus else ''}",
         # name="proto_test",
         image_size=mini_image_net.image_size,
         backbone=backbone,
         sl_output_size=mini_image_net.get_output_size(util.OutputForm.ROT),
-        alpha=0.1,
+        alpha=0.5,
         hidden_neurons=[640 for _ in range(4)],
         learning_rate=1e-3,
         # optimizer_args={
