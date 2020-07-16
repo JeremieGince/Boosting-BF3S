@@ -179,3 +179,54 @@ def calc_euclidian_dists(x, y):
     x = tf.tile(tf.expand_dims(x, 1), [1, m, 1])
     y = tf.tile(tf.expand_dims(y, 0), [n, 1, 1])
     return tf.reduce_mean(tf.math.pow(x - y, 2), 2)
+
+
+def calc_cosine_dists(x, y):
+    import tensorflow as tf
+    """
+    Calculate cosine distance between two 3D tensors.
+    Args:
+        x (tf.Tensor):
+        y (tf.Tensor):
+    Returns (tf.Tensor): 2-dim tensor with distances.
+    """
+    n = x.shape[0]
+    m = y.shape[0]
+    x = tf.tile(tf.expand_dims(x, 1), [1, m, 1])
+    y = tf.tile(tf.expand_dims(y, 0), [n, 1, 1])
+    return tf.reduce_mean(tf.math.pow(x - y, 2), 2)
+
+
+class SLBoostedType(enum.Enum):
+    ROT = 0
+
+
+def get_str_repr_for_config(config: dict):
+    _str = ""
+    for sec, sec_dict in config.items():
+        _str += get_str_repr_for_sec_config(config, sec)
+    return _str
+
+
+def get_str_repr_for_secs_config(config: dict, secs: list):
+    _str = ""
+    for sec in secs:
+        _str += get_str_repr_for_sec_config(config, sec)
+    return _str
+
+
+def get_str_repr_for_sec_config(config:dict, sec: str):
+    assert sec in config.keys(), f"The param: 'sec' must be in {config.keys()}"
+    _str = ""
+
+    sec_dict = config[sec]
+    _str += '-' * 25 + '\n'
+    _str += str(sec) + '\n'
+    _str += '-' * 25 + '\n'
+
+    for param, value in sec_dict.items():
+        _str += f"{param}: {value} \n"
+
+    _str += '\n'
+    return _str
+

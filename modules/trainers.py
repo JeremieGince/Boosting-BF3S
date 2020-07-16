@@ -46,6 +46,13 @@ class Trainer:
         else:
             self.network_callback = network_callback
 
+        self.n_train_batch = kwargs.get("n_train_batch", 100)
+        self.n_val_batch = kwargs.get("n_val_batch", 100)
+        self.n_training_batches = {
+            util.TrainingPhase.TRAIN: self.n_train_batch,
+            util.TrainingPhase.VAL: self.n_val_batch,
+        }
+
         # Setting metrics
         # TODO: get the metrics from ModelManager
         self.running_metrics = {_metric: tf.keras.metrics.Mean() for _metric in ["loss", "accuracy"]}
@@ -134,47 +141,95 @@ class Trainer:
         return logs
 
     def do_phase(self, epoch: int, phase: util.TrainingPhase):
-        epoch_loss_avg = tf.keras.metrics.Mean()
-        epoch_accuracy = tf.keras.metrics.Accuracy()
-        metrics = dict(zip(self.model.metrics_names, self.model.metrics))
-        print(metrics)
+        self.progress.set_description_str(str(phase.value))
 
-        nb_batch = self.dataset.train_length // self.dataset.batch_size
+        # reset the metrics
+        for _metric in self.running_metrics:
+            self.running_metrics[_metric].reset_states()
 
-        # calling the callback
-        self.network_callback.on_epoch_begin(epoch)
+        total_episodes = sum(list(self.n_training_batches.values()))
 
-        # Training loop
-        for batch_idx, (x, y) in enumerate(iter(self.data_generators[phase])):
-
+        _data_itr = iter(self.data_generators[phase])
+        for batch_idx in range(self.n_training_batches[phase]):
             # Optimize the model
-            loss_value, grads = self.grad(x, y)
-            self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+            # Forward & update gradients
+            if phase == util.TrainingPhase.TRAIN:
+                with tf.GradientTape() as tape:
+                    _inputs = next(_data_itr)
+                    batch_logs = self.modelManager.compute_metrics(_inputs)  # TODO: ask ModelManager to get metrics dict as logs
+
+                grads = tape.gradient(batch_logs["loss"], self.model.trainable_variables)
+                self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+            elif phase == util.TrainingPhase.VAL:
+                _inputs = next(_data_itr)
+                batch_logs = self.modelManager.compute_metrics(_inputs)
+            else:
+                raise NotImplementedError(f"Training phase: {phase} not implemented")
 
             # Track progress
-            epoch_loss_avg.update_state(loss_value)  # Add current batch loss
-            # Compare predicted label to actual label
-            # training=True is needed only if there are layers with different
-            # behavior during training versus inference (e.g. Dropout).
-            epoch_accuracy.update_state(y, self.model(x, training=True))
+            # TODO: get metrics automatically
+            self.running_metrics["loss"].update_state(batch_logs["loss"])
+            self.running_metrics["accuracy"].update_state(batch_logs["accuracy"])
 
             # update progress
-            self.progress.update(1/nb_batch)
-            self.progress.set_postfix_str(f"batches: {batch_idx}/{nb_batch} "
-                                          f"- train_loss: {epoch_loss_avg.result():.3f} "
-                                          f"- train_acc: {epoch_accuracy.result():.3f}")
-            if batch_idx + 1 == nb_batch:
-                break
+            self.progress.update(1 / total_episodes)
+            self.progress.set_postfix_str(f"batch: {batch_idx}/{self.n_training_batches[phase]} -> "
+                                          + ' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
+                                                       for k, v in self.running_metrics.items()]))
 
-        epoch_logs = {"loss": epoch_loss_avg.result(), "accuracy": epoch_accuracy.result()}
+        phase_logs = {k: v.result().numpy() for k, v in self.running_metrics.items()}
 
-        # calling the callback
-        self.network_callback.on_epoch_end(epoch, logs=epoch_logs)
+        return phase_logs
 
-        return epoch_logs
+    def test(self, n=1):
+        if self.load_on_start:
+            self.modelManager.load()
 
-    def test(self):
-        pass
+        phase_logs = {k: [] for k, v in self.running_metrics.items()}
+
+        phase = util.TrainingPhase.TEST
+
+        self.progress = tqdm(
+            ascii=True,
+            iterable=range(n),
+            unit="episode",
+        )
+        self.progress.set_description_str("Test")
+
+        _data_itr = iter(self.data_generators[phase])
+        # reset the metrics
+        for _metric in self.running_metrics:
+            self.running_metrics[_metric].reset_states()
+
+        for i in range(n):
+            _inputs = next(_data_itr)
+            loss, acc = self.model.call(_inputs)
+
+            # Track progress
+            # TODO: get metrics automatically
+            self.running_metrics["loss"].update_state(loss)
+            self.running_metrics["accuracy"].update_state(acc)
+
+            # update progress
+            self.progress.update(1)
+            self.progress.set_postfix_str(' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
+                                                      for k, v in self.running_metrics.items()]))
+            for k in phase_logs:
+                phase_logs[k].append(self.running_metrics[k].result().numpy())
+
+        self.progress.close()
+        phase_logs = {k: np.array(v) for k, v in phase_logs.items()}
+
+        if self.verbose:
+            print("\n--- Test results --- \n"
+                  f"{self.config}"
+                  f"Train epochs: {self.modelManager.current_epoch} \n"
+                  f"Test epochs: {n} \n"
+                  f"Mean accuracy: {np.mean(phase_logs.get('accuracy')) * 100:.2f}% "
+                  f"± {np.std(phase_logs.get('accuracy')) * 100:.2f} \n"
+                  f"{'-' * 35}")
+
+        return phase_logs
 
     @property
     def config(self) -> str:
@@ -183,14 +238,11 @@ class Trainer:
 
 class FewShotTrainer(Trainer):
     def __init__(self, model_manager: NetworkModelManager, dataset: DatasetBase, **kwargs):
-        self.train_mini_batch = kwargs.get("train_mini_batch", 1)
         self.n_way = kwargs.get("n_way", 30)
         self.n_test_way = kwargs.get("n_test_way", self.n_way)
         self.n_shot = kwargs.get("n_shot", 5)
         self.n_test_shot = kwargs.get("n_test_shot", self.n_shot)
         self.n_query = kwargs.get("n_query", 1)
-
-        assert self.n_query % self.train_mini_batch == 0, "n_query must be a multiple of train_mini_batch"
 
         self.n_test_query = kwargs.get("n_test_query", self.n_query)
         self.n_train_episodes = kwargs.get("n_train_episodes", 10)
@@ -206,7 +258,7 @@ class FewShotTrainer(Trainer):
             util.TrainingPhase.TRAIN: {
                 "way": self.n_way,
                 "shot": self.n_shot,
-                "query": self.n_query // self.train_mini_batch
+                "query": self.n_query
             },
             util.TrainingPhase.VAL: {
                 "way": self.n_test_way,
@@ -353,34 +405,34 @@ if __name__ == '__main__':
     from modules.hyperparameters import *
     import time
 
-    # -----------------------------------------------------------------------------------------------------------------
-    # hyper-parameters
-    # -----------------------------------------------------------------------------------------------------------------
-    tf.random.set_seed(SEED)
-    print(get_str_repr_for_hyper_params())
-
-    mini_imagenet_dataset = MiniImageNetDataset(
-        image_size=IMG_SIZE,
-        batch_size=64
-    )
-
-    self_learner = SelfLearnerWithImgRotation(
-        name="SelfLearnerWithImgRotation",
-        image_size=mini_imagenet_dataset.image_size,
-        output_size=mini_imagenet_dataset.get_output_size(OutputForm.ROT),
-    )
-    self_learner.build_and_compile()
-    self_learner.summary()
-
-    # -----------------------------------------------------------------------------------------------------------------
-    # Training the self learner with rotation
-    # -----------------------------------------------------------------------------------------------------------------
-    self_trainer = Trainer(
-        model_manager=self_learner,
-        dataset=mini_imagenet_dataset
-    )
-
-    start_time = time.time()
-    self_trainer.train(epochs=2)
-    end_feature_training_time = time.time() - start_time
-    print(f"--- Elapse feature training time: {end_feature_training_time} [s] ---")
+    # # -----------------------------------------------------------------------------------------------------------------
+    # # hyper-parameters
+    # # -----------------------------------------------------------------------------------------------------------------
+    # tf.random.set_seed(SEED)
+    # print(get_str_repr_for_hyper_params())
+    #
+    # mini_imagenet_dataset = MiniImageNetDataset(
+    #     image_size=IMG_SIZE,
+    #     batch_size=64
+    # )
+    #
+    # self_learner = SelfLearnerWithImgRotation(
+    #     name="SelfLearnerWithImgRotation",
+    #     image_size=mini_imagenet_dataset.image_size,
+    #     output_size=mini_imagenet_dataset.get_output_size(OutputForm.ROT),
+    # )
+    # self_learner.build_and_compile()
+    # self_learner.summary()
+    #
+    # # -----------------------------------------------------------------------------------------------------------------
+    # # Training the self learner with rotation
+    # # -----------------------------------------------------------------------------------------------------------------
+    # self_trainer = Trainer(
+    #     model_manager=self_learner,
+    #     dataset=mini_imagenet_dataset
+    # )
+    #
+    # start_time = time.time()
+    # self_trainer.train(epochs=2)
+    # end_feature_training_time = time.time() - start_time
+    # print(f"--- Elapse feature training time: {end_feature_training_time} [s] ---")

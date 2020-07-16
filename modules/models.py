@@ -10,19 +10,18 @@ from copy import deepcopy
 
 import modules.util as util
 import modules.backbones as backbones
-from modules.hyperparameters import *
 
 
 class FewShot(tf.keras.Model):
     def __init__(self,
-                 # few shot parameters
-                 # n_support, n_query,
-
                  # inputs parameters
                  w, h, c,
 
                  # Model parameters
                  backbone: tf.keras.Model,
+
+                 # SL bosster
+                 sl_model: tf.keras.Model = None,
 
                  # others
                  **kwargs):
@@ -38,6 +37,7 @@ class FewShot(tf.keras.Model):
         super(FewShot, self).__init__()
         self.w, self.h, self.c = w, h, c
         self.backbone = backbone
+        self.sl_model = sl_model
 
     def set_support(self, support):
         raise NotImplementedError
@@ -46,16 +46,13 @@ class FewShot(tf.keras.Model):
         raise NotImplementedError
 
 
-class Prototypical(tf.keras.Model):
+class Prototypical(FewShot):
     """
     Reference: https://github.com/schatty/prototypical-networks-tf/blob/master/prototf/models/prototypical.py
     Implemenation of Prototypical Network.
     """
 
     def __init__(self,
-                 # few shot parameters
-                 # n_support, n_query,
-
                  # inputs parameters
                  w, h, c,
 
@@ -63,52 +60,41 @@ class Prototypical(tf.keras.Model):
                  backbone: tf.keras.Model,
 
                  # SL bosster
-                 sl_classifier: tf.keras.Model = None,
+                 sl_model: tf.keras.Model = None,
 
                  # others
                  **kwargs):
         """
         Args:
-            n_support (int): number of support examples.
-            n_query (int): number of query examples.
             w (int): image width .
             h (int): image height.
             c (int): number of channels.
             backbone (tf.keras.Model): the encoder model as backbone.
+
         """
-        super(Prototypical, self).__init__()
-        self.w, self.h, self.c = w, h, c
-        self.backbone = backbone
-
-        self.sl_classifier = sl_classifier
+        super(Prototypical, self).__init__(
+            w, h, c,
+            backbone,
+            sl_model,
+            **kwargs
+        )
         self.alpha = kwargs.get("alpha", 1.0)
-
-        self.possible_rotations = [0, 90, 180, 270]
-        self.possible_rotations_to_one_hot = {
-            rot: util.c_idx2one_hot(idx, np.zeros(len(self.possible_rotations), dtype=int))
-            for idx, rot in enumerate(self.possible_rotations)
-        }
-        self.possible_k = range(4)
 
         self.z_prototypes = None
         self.n_class = None
         self.n_support = None
 
-        self.sl_x = None
-        self.sl_y = None
+        self.sl_support_loss = None
+        self.sl_query_loss = None
 
-    def call(self,  _query, training=None, mask=None):
-        return self.apply_query(_query)
+    def call(self,  _inputs, training=None, mask=None):
+        return self.call_proto(*_inputs)
 
     def set_support(self, support):
         self.n_class = support.shape[0]
         self.n_support = support.shape[1]
         support_reshape = tf.reshape(support, [self.n_class * self.n_support,
                                                self.w, self.h, self.c])
-
-        # correct indices of support samples (just natural order)
-        target_inds = tf.reshape(tf.range(self.n_class), [self.n_class, 1])
-
         z = self.backbone(support_reshape)
 
         self.z_prototypes = tf.reduce_mean(
@@ -116,17 +102,18 @@ class Prototypical(tf.keras.Model):
             , axis=1
         )
 
-        if self.sl_classifier is not None:
-            self.sl_x, self.sl_y = self.get_sl_set_args(tf.identity(support))
+        if self.sl_model is not None:
+            self.sl_support_loss, _ = self.sl_model.call(support)
 
     def apply_query(self, _query):
         loss_few, acc_few = self.apply_query_proto(_query)
 
-        if self.sl_classifier is None:
+        if self.sl_model is None:
             return loss_few, acc_few
         else:
-            loss_sl = self.call_proto_sl(self.sl_x, self.sl_y, *self.get_sl_set_args(tf.identity(_query)))
-            return loss_few + self.alpha * loss_sl, acc_few
+            self.sl_query_loss, _ = self.sl_model.call(_query)
+            sl_loss = tf.reduce_mean(tf.concat([self.sl_support_loss, self.sl_query_loss], axis=0))
+            return loss_few + self.alpha * sl_loss, acc_few
 
     def apply_query_proto(self, query):
         n_query = query.shape[1]
@@ -202,95 +189,22 @@ class Prototypical(tf.keras.Model):
 
         return loss_few, acc_few
 
-    def call_proto_sl(self, *sl_args):
-        [sl_x, sl_y, sl_test_x, sl_test_y] = sl_args
 
-        sl_y_pred = self.sl_classifier(self.backbone(sl_x))
-        sl_test_y_pred = self.sl_classifier(self.backbone(sl_test_x))
-
-        lb0 = categorical_crossentropy(sl_y, sl_y_pred)
-        # del sl_y
-        # del sl_y_pred
-
-        lb1 = categorical_crossentropy(sl_test_y, sl_test_y_pred)
-        # del sl_test_y
-        # del sl_test_y_pred
-
-        loss_sl = (tf.reduce_mean(lb0) + tf.reduce_mean(lb1)) / 2
-
-        # sl_eq = tf.cast(
-        #     tf.equal(
-        #         tf.cast(tf.argmax(sl_y_pred, axis=-1), tf.int32),
-        #         tf.cast(tf.argmax(sl_y, axis=-1), tf.int32)
-        #     ), tf.float32
-        # )
-        #
-        # sl_eq_test = sl_eq = tf.cast(
-        #     tf.equal(
-        #         tf.cast(tf.argmax(sl_test_y_pred, axis=-1), tf.int32),
-        #         tf.cast(tf.argmax(sl_test_y, axis=-1), tf.int32)
-        #     ), tf.float32
-        # )
-        #
-        # sl_eq_t = tf.concat([sl_eq, sl_eq_test], axis=0)
-        #
-        # acc_sl = tf.reduce_mean(sl_eq_t)
-
-        return loss_sl
-
-    def get_sl_args(self, support, query):
-        _n_way, _n_shot, _w, _h, _c = support.shape
-        _n_way, _n_query, _w, _h, _c = query.shape
-
-        support_reshape = tf.reshape(support, shape=[_n_way * _n_shot, _w, _h, _c])
-        query_reshape = tf.reshape(query, shape=[_n_way * _n_query, _w, _h, _c])
-
-        sl_y_r = np.random.choice(self.possible_k, support_reshape.shape[0])
-        sl_x = tf.map_fn(lambda _i: tf.image.rot90(support_reshape[_i], sl_y_r[_i]),
-                         tf.range(support_reshape.shape[0]), dtype=tf.float32)
-
-        sl_y = tf.cast(tf.one_hot(sl_y_r, len(self.possible_k)), tf.int16)
-
-        sl_test_y_r = np.random.choice(self.possible_k, query_reshape.shape[0])
-        sl_test_x = tf.map_fn(lambda _i: tf.image.rot90(query_reshape[_i], sl_test_y_r[_i]),
-                              tf.range(query_reshape.shape[0]), dtype=tf.float32)
-
-        sl_test_y = tf.cast(tf.one_hot(sl_test_y_r, len(self.possible_k)), tf.int16)
-
-        return [sl_x, sl_y, sl_test_x, sl_test_y]
-
-    def get_sl_set_args(self, _set):
-        _n_way, _n_shot, _w, _h, _c = _set.shape
-
-        _set_reshape = tf.reshape(_set, shape=[_n_way * _n_shot, _w, _h, _c])
-
-        sl_y_r = np.random.choice(self.possible_k, _set_reshape.shape[0])
-        sl_x = tf.map_fn(lambda _i: tf.image.rot90(_set_reshape[_i], sl_y_r[_i]),
-                         tf.range(_set_reshape.shape[0]), dtype=tf.float32)
-
-        sl_y = tf.cast(tf.one_hot(sl_y_r, len(self.possible_k)), tf.int16)
-
-        return sl_x, sl_y
-
-
-class CosineClassifier(tf.keras.Model):
+class CosineClassifier(FewShot):
     """
-    Reference: https://github.com/schatty/prototypical-networks-tf/blob/master/prototf/models/prototypical.py
-    Implemenation of Prototypical Network.
+    Reference:
+    Implemenation of Cosine Classifier.
     """
 
     def __init__(self,
-                 # few shot parameters
-                 # n_support, n_query,
-
                  # inputs parameters
                  w, h, c,
 
                  # Model parameters
                  backbone: tf.keras.Model,
 
-                 # SL bosster
-                 sl_classifier: tf.keras.Model = None,
+                 # SL booster
+                 sl_model: tf.keras.Model = None,
 
                  # others
                  **kwargs):
@@ -303,37 +217,42 @@ class CosineClassifier(tf.keras.Model):
             c (int): number of channels.
             backbone (tf.keras.Model): the encoder model as backbone.
         """
-        super(CosineClassifier, self).__init__()
-        self.w, self.h, self.c = w, h, c
-        self.backbone = backbone
-
-        self.sl_classifier = sl_classifier
+        super(CosineClassifier, self).__init__(
+            w, h, c,
+            backbone,
+            sl_model,
+            **kwargs
+        )
         self.alpha = kwargs.get("alpha", 1.0)
 
-        self.possible_rotations = [0, 90, 180, 270]
-        self.possible_rotations_to_one_hot = {
-            rot: util.c_idx2one_hot(idx, np.zeros(len(self.possible_rotations), dtype=int))
-            for idx, rot in enumerate(self.possible_rotations)
-        }
-        self.possible_k = range(4)
+        self.nkall = kwargs.get("nkall", 1)
+        self.nFeat = self.backbone.output_shape
 
-        self.weight_base = None
-        self.weight_novel = None
         self.n_class = None
         self.n_support = None
 
-        self.sl_x = None
-        self.sl_y = None
+        self.weight_base = tf.Variable(
+            np.random.normal(0.0, np.sqrt(2.0/self.nFeat), size=(self.nkall, self.nFeat)),
+            trainable=True
+        )
+        self.bias = tf.Variable(0.0, trainable=True)
+        self.scale_cls = tf.Variable(10.0, trainable=True)
 
-    def call(self,  _query, training=None, mask=None):
-        # loss_few, acc_few = self.call_proto(support, query)
-        loss_few, acc_few = self.apply_query(_query)
+        self.z_prototypes = None
 
-        if self.sl_classifier is None:
-            return loss_few, acc_few
-        else:
-            loss_sl = self.call_proto_sl(self.sl_x, self.sl_y, *self.get_sl_set_args(_query))
-            return loss_few + self.alpha*loss_sl, acc_few
+        self.sl_support_loss = None
+        self.sl_query_loss = None
+
+    def call(self, inputs, training=None, mask=None):
+        x_batch, ids_batch = inputs
+        x_feats = self.backbone(x_batch)
+        x_feats_normalized = tf.keras.utils.normalize(x_feats, axis=-1, order=2)
+        # TODO: il faut prendre seulement les weights associés aux bon features avec les indices
+        weights_normalized = tf.keras.utils.normalize(self.weight_base, axis=-1, order=2)  # TODO: savoir je dois remplacer self.weight_base
+
+        cls_scores = self.scale_cls * tf.multiply(x_feats_normalized, weights_normalized)  # TODO: va peut-etre falloire transposer les weights
+
+        sl_loss, sl_acc = self.sl_model.call(x_batch)
 
     def set_support(self, support):
         self.n_class = support.shape[0]
@@ -347,25 +266,38 @@ class CosineClassifier(tf.keras.Model):
             , axis=1
         )
 
-        if self.sl_classifier is not None:
-            self.sl_x, self.sl_y = self.get_sl_set_args(support)
+        if self.sl_model is not None:
+            self.sl_support_loss, _ = self.sl_model.call(support)
 
-    def apply_query(self, query):
+    def apply_query(self, _query):
+        loss_few, acc_few = self.apply_query_proto(_query)
+
+        if self.sl_classifier is None:
+            return loss_few, acc_few
+        else:
+            sl_loss = tf.reduce_mean(tf.concat([self.sl_support_loss, self.sl_query_loss], axis=0))
+            return loss_few + self.alpha * sl_loss, acc_few
+
+    def apply_query_proto(self, query):
         n_query = query.shape[1]
         y = np.tile(np.arange(self.n_class)[:, np.newaxis], (1, n_query))
         y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
+
+        # correct indices of support samples (just natural order)
+        target_inds = tf.reshape(tf.range(self.n_class), [self.n_class, 1])
+        target_inds = tf.tile(target_inds, [1, n_query])
 
         z_query = self.backbone(tf.reshape(query, [self.n_class * n_query,
                                                    self.w, self.h, self.c]))
 
         # Calculate distances between query and prototypes
-        dists = util.calc_euclidian_dists(z_query, self.z_prototypes)
+        dists = util.calc_cosine_dists(z_query, self.z_prototypes)
 
         # log softmax of calculated distances
-        log_p_y = tf.nn.log_softmax(-dists, axis=-1)
+        log_p_y = tf.nn.log_softmax(self.scale_cls * dists, axis=-1)
         log_p_y = tf.reshape(log_p_y, [self.n_class, n_query, -1])
 
-        loss_few = -tf.reduce_mean(tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, log_p_y), axis=-1), [-1]))
+        loss_few = -tf.reduce_mean(tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, tf.cast(log_p_y, tf.float32)), axis=-1), [-1]))
         eq = tf.cast(
             tf.equal(
                 tf.cast(tf.argmax(log_p_y, axis=-1), tf.int32),
@@ -376,10 +308,79 @@ class CosineClassifier(tf.keras.Model):
 
         return loss_few, acc_few
 
-    def get_sl_set_args(self, _set):
-        _n_way, _n_shot, _w, _h, _c = _set.shape
 
-        _set_reshape = tf.reshape(_set, shape=[_n_way * _n_shot, _w, _h, _c])
+#####################################################################################################
+#  Self-learning models
+#####################################################################################################
+
+
+def get_sl_model(backbone, sl_boosted_type: util.SLBoostedType, **kwargs):
+    sl_type_to_cls = {
+        util.SLBoostedType.ROT: SLRotationModel
+    }
+
+    return sl_type_to_cls.get(sl_boosted_type)(backbone, **kwargs) if sl_boosted_type is not None else None
+
+
+class SLRotationModel(tf.keras.Model):
+    def __init__(self, backbone, **kwargs):
+        super(SLRotationModel, self).__init__()
+
+        self.possible_k = range(4)
+        self.possible_rotations = [90 * _k for _k in self.possible_k]
+        self.possible_rotations_to_one_hot = {
+            rot: util.c_idx2one_hot(idx, np.zeros(len(self.possible_rotations), dtype=int))
+            for idx, rot in enumerate(self.possible_rotations)
+        }
+
+        self.backbone = backbone
+        self._sl_input_shape = backbone.output_shape[1:]
+        self._sl_output_size = len(self.possible_k)
+        self._nb_hidden_layer: int = kwargs.get("nb_hidden_layers", 1)
+        self._hidden_neurons: list = kwargs.get("hidden_neurons", [4096 for _ in range(self._nb_hidden_layer)])
+        self._nb_hidden_layer = len(self._hidden_neurons)
+
+        self.sl_classifier_layers = [
+            Flatten(),
+            ReLU(),
+            *[
+                Sequential([
+                    Dense(h),
+                    BatchNormalization(),
+                    ReLU(),
+                ], name="Dense_Block")
+                for h in self._hidden_neurons
+            ],
+            Dense(self._sl_output_size, name="sl_rot_output_layer"),
+            Softmax(dtype=tf.float32),
+        ]
+
+        self._cls_input = Input(shape=self._sl_input_shape)
+        self._seq = Sequential(self.sl_classifier_layers)
+        self._cls = tf.keras.Model(inputs=self._cls_input, outputs=self._seq(self._cls_input))
+
+    def call(self, inputs, training=None, mask=None):
+        sl_x, sl_y = self._get_sl_set_args(inputs)
+
+        sl_y_pred = self._cls(self.backbone(sl_x))
+
+        loss = categorical_crossentropy(sl_y, sl_y_pred)
+
+        sl_eq = tf.cast(
+            tf.equal(
+                tf.cast(tf.argmax(sl_y_pred, axis=-1), tf.int32),
+                tf.cast(tf.argmax(sl_y, axis=-1), tf.int32)
+            ), tf.float32
+        )
+
+        acc = tf.reduce_mean(sl_eq)
+
+        return loss, acc
+
+    def _get_sl_set_args(self, _set):
+        *_batch_dim, _w, _h, _c = _set.shape
+
+        _set_reshape = tf.reshape(_set, shape=[np.prod(_batch_dim), _w, _h, _c])
 
         sl_y_r = np.random.choice(self.possible_k, _set_reshape.shape[0])
         sl_x = tf.map_fn(lambda _i: tf.image.rot90(_set_reshape[_i], sl_y_r[_i]),

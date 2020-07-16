@@ -1,4 +1,5 @@
 import os
+import enum
 
 import numpy as np
 import tensorflow as tf
@@ -8,9 +9,8 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.losses import binary_crossentropy
 
 import modules.util as util
-from modules.models import Prototypical
+from modules.models import Prototypical, SLRotationModel, CosineClassifier, get_sl_model
 import modules.backbones as backbones
-from modules.hyperparameters import *
 
 os.environ["PATH"] += os.pathsep + r'C:\Program Files (x86)\Graphviz2.38\bin/'
 
@@ -49,11 +49,11 @@ class NetworkModelManager:
 
         # setting the optimizer
         self.learning_rate = kwargs.get("learning_rate", 1e-3)
-        self.momentum = kwargs.get("momentum", CLS_MOMENTUM)
-        self.use_nesterov = kwargs.get("use_nesterov", CLS_USE_NESTEROV)
+        self.momentum = kwargs.get("momentum", 0.9)
+        self.use_nesterov = kwargs.get("use_nesterov", True)
         self.optimizer_args = kwargs.get("optimizer_args", {
             "momentum": self.momentum,
-            "nesterov": CLS_USE_NESTEROV,
+            "nesterov": self.use_nesterov,
         })
         self.optimizer = kwargs.get("optimizer", SGD)(self.learning_rate, **self.optimizer_args)
 
@@ -144,10 +144,11 @@ class NetworkModelManager:
 
     @staticmethod
     def loss_function(y_true, y_pred, **kwargs):
-        raise NotImplementedError()
+        return tf.keras.losses.categorical_crossentropy(y_true, y_pred, **kwargs)
 
     def compute_metrics(self, *args, **kwargs) -> dict:
-        pass
+        loss, acc = self.model.call(*args, **kwargs)
+        return {"loss": loss, "accuracy": acc}
 
 
 class NetworkManagerCallback(tf.keras.callbacks.Callback):
@@ -205,8 +206,7 @@ class SelfLearnerWithImgRotation(NetworkModelManager):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.img_size = kwargs.get("image_size", 80)
-        self.output_size = kwargs.get("output_size", 1)
+        self.img_size = kwargs.get("image_size", 84)
         self.output_form = util.OutputForm.ROT
 
         self._backbone = kwargs.get("backbone", SelfLearnerWithImgRotation.default_backbone)
@@ -223,43 +223,26 @@ class SelfLearnerWithImgRotation(NetworkModelManager):
 
         self._nb_hidden_layer: int = kwargs.get("nb_hidden_layers", 1)
         self._hidden_neurons: list = kwargs.get("hidden_neurons", [4096 for _ in range(self._nb_hidden_layer)])
-
-        assert self._nb_hidden_layer == len(self._hidden_neurons)
-
-        self.classifier = Sequential(
-            Flatten(),
-            ReLU(),
-            *[
-                Sequential([
-                    Dense(h),
-                    BatchNormalization(),
-                    ReLU(),
-                ], name="Dense_Block")
-                for h in self._hidden_neurons
-            ],
-            Dense(self.output_size, name="output_layer"),
-            Softmax(dtype=tf.float32),
-        )
+        self._nb_hidden_layer = len(self._hidden_neurons)
 
     def build(self):
-        self.model = Sequential(
-            [
-                self.available_backbones.get(self._backbone)(
-                    **self._backbone_args, **self._backbone_kwargs
-                ),
-                self.classifier,
-            ]
+        self.model = SLRotationModel(
+            self.available_backbones.get(self._backbone)(
+                **self._backbone_args, **self._backbone_kwargs
+            ),
+            nb_hidden_layers=self._nb_hidden_layer,
+            hidden_neurons=self._hidden_neurons,
         )
 
         return self.model
 
-    @staticmethod
-    def loss_function(y_true, y_pred, **kwargs):
-        return tf.keras.losses.binary_crossentropy(y_true, y_pred, from_logits=kwargs.get("from_logits", False))
-
 
 class FewShotImgLearner(NetworkModelManager):
     default_backbone = "conv-4-64"
+
+    class Method(enum.Enum):
+        PrototypicalNet = 0,
+        CosineNet = 1
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -280,86 +263,46 @@ class FewShotImgLearner(NetworkModelManager):
         )
         self._backbone_kwargs = kwargs.get("backbone_kwargs", {})
 
-    def build(self):
-        self.model = Prototypical(
-            w=self.img_size,
-            h=self.img_size,
-            c=self.channels,
-            backbone=self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
-        )
+        self.method = kwargs.get("method", FewShotImgLearner.Method.PrototypicalNet)
 
-        return self.model
+        self._methods_to_build = {
+            FewShotImgLearner.Method.PrototypicalNet: self._build_proto_net,
+            FewShotImgLearner.Method.CosineNet: self._build_cosine_net,
+        }
 
-    @staticmethod
-    def loss_function(y_true, y_pred, **kwargs):
-        return tf.keras.losses.binary_crossentropy(y_true, y_pred, from_logits=kwargs.get("from_logits", False))
-
-
-class BoostedFewShotLearner(NetworkModelManager):
-    default_backbone = "conv-4-64"
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self.img_size = kwargs.get("image_size", 84)
-        self.channels = kwargs.get("channels", 3)
-        self.input_shape = (self.img_size, self.img_size, self.channels)
-        self.output_form = util.OutputForm.FS
-
-        self._backbone = kwargs.get("backbone", FewShotImgLearner.default_backbone)
-        assert self._backbone in NetworkModelManager.available_backbones
-        self._backbone_args = kwargs.get(
-            "backbone_args",
-            {
-                "include_top": False,
-                "weights": None,
-                "input_shape": self.input_shape
-            }
-        )
-        self._backbone_kwargs = kwargs.get("backbone_kwargs", {})
-
-        # SL stuff
-        self.sl_output_size = kwargs.get("sl_output_size", 1)
-        self._nb_hidden_layer: int = kwargs.get("nb_hidden_layers", 1)
-        self._hidden_neurons: list = kwargs.get("hidden_neurons", [4096 for _ in range(self._nb_hidden_layer)])
-        self._nb_hidden_layer = len(self._hidden_neurons)
-        self.alpha = kwargs.get("alpha", 1.0)
-
-        self.sl_classifier_layers = [
-            Flatten(),
-            ReLU(),
-            *[
-                Sequential([
-                    Dense(h),
-                    BatchNormalization(),
-                    ReLU(),
-                ], name="Dense_Block")
-                for h in self._hidden_neurons
-            ],
-            Dense(self.sl_output_size, name="sl_output_layer"),
-            Softmax(dtype=tf.float32),
-        ]
+        self.sl_add_on: util.SLBoostedType = kwargs.get("sl_boosted_type", None)
+        self.sl_kwargs = kwargs.get("sl_kwargs", {})
 
     def build(self):
-        _backbone = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
-        _cls_input = Input(shape=_backbone.output_shape[1:])
-        _seq = Sequential(self.sl_classifier_layers)
-        _cls = tf.keras.Model(inputs=_cls_input, outputs=_seq(_cls_input))
+        return self._methods_to_build.get(self.method)()
+
+    def _build_proto_net(self):
+        backbone = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
+        sl_model = get_sl_model(backbone, self.sl_add_on, **self.sl_kwargs) if self.sl_add_on is not None else None
 
         self.model = Prototypical(
             w=self.img_size,
             h=self.img_size,
             c=self.channels,
-            backbone=_backbone,
-            sl_classifier=_cls,
-            alpha=self.alpha,
+            backbone=backbone,
+            sl_model=sl_model,
         )
 
         return self.model
 
-    @staticmethod
-    def loss_function(y_true, y_pred, **kwargs):
-        return tf.keras.losses.categorical_crossentropy(y_true, y_pred, from_logits=kwargs.get("from_logits", False))
+    def _build_cosine_net(self):
+        backbone = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
+        sl_model = get_sl_model(backbone, self.sl_add_on, **self.sl_kwargs)
+
+        self.model = CosineClassifier(
+            w=self.img_size,
+            h=self.img_size,
+            c=self.channels,
+            backbone=backbone,
+            sl_model=sl_model,
+        )
+
+        return self.model
 
 
 if __name__ == '__main__':

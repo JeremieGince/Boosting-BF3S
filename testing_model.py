@@ -1,5 +1,5 @@
 from modules.datasets import MiniImageNetDataset
-from modules.modelManagers import BoostedFewShotLearner
+from modules.modelManagers import FewShotImgLearner
 from modules.trainers import FewShotTrainer
 from modules.modelManagers import NetworkManagerCallback
 import modules.util as util
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     t_shot = 5
     backbone = "conv-4-64"
 
-    cerebus = False
+    cerebus = not False
 
     data_dir = r"D:\Datasets\mini-imagenet"
 
@@ -28,24 +28,13 @@ if __name__ == '__main__':
         data_dir=data_dir
     )
 
-    few_shot_learner = BoostedFewShotLearner(
-        name=f"prototypical_boosted_few_shot_rot_learner-{backbone}_"
-             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_Adam_a070_float16"
-             f"{'_c' if cerebus else ''}",
-        # name="proto_test",
+    few_shot_learner = FewShotImgLearner(
+        name=f"prototypical_few_shot_learner-{backbone}_backbone_"
+             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_085{'_c' if cerebus else ''}_67acc",
         image_size=mini_image_net.image_size,
         backbone=backbone,
-        sl_output_size=mini_image_net.get_output_size(util.OutputForm.ROT),
-        alpha=0.70,
-        hidden_neurons=[640 for _ in range(4)],
-        learning_rate=1e-3,
-        # optimizer_args={
-        #     "momentum": 0.9,
-        #     "decay": 5e-4,
-        #     "nesterov": True,
-        # },
-        # optimizer=tf.keras.optimizers.SGD,
         optimizer_args={},
+        learning_rate=1e-3,
         optimizer=tf.keras.optimizers.Adam,
     )
     few_shot_learner.build_and_compile()
@@ -64,7 +53,6 @@ if __name__ == '__main__':
     few_shot_trainer = FewShotTrainer(
         model_manager=few_shot_learner,
         dataset=mini_image_net,
-        train_mini_batch=1 if cerebus else 1,
 
         # few shot params
         n_way=way,
@@ -82,7 +70,5 @@ if __name__ == '__main__':
     )
 
     print(few_shot_trainer.config)
-    few_shot_trainer.train(epochs=300, final_testing=False)
     few_shot_trainer.test(n=10)
 
-    util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name, savefig=not cerebus)

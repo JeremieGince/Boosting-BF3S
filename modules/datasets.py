@@ -9,8 +9,7 @@ from scipy import ndimage
 import warnings
 
 import modules.util as util
-from modules.hyperparameters import SEED
-from modules.user_constants import MINIIMAGETNET_DIR
+from config.user_constants import MINIIMAGETNET_DIR
 from modules.util import OutputForm, TrainingPhase
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -22,9 +21,6 @@ class DatasetBase:
             data_dir,
             **kwargs
     ):
-        tf.random.set_seed(SEED)
-        np.random.seed(SEED)
-
         self.name = kwargs.get("name", "Dataset")
         self.data_dir = data_dir
 
@@ -133,34 +129,9 @@ class MiniImageNetDataset(DatasetBase):
 
         self.name = kwargs.get("name", "MiniImageNet Dataset")
 
-        # self.file_train_categories_train_phase = os.path.join(
-        #     data_dir, "miniImageNet_category_split_train_phase_train.pickle"
-        # )
-        # self.file_train_categories_val_phase = os.path.join(
-        #     data_dir, "miniImageNet_category_split_train_phase_val.pickle"
-        # )
-        # self.file_train_categories_test_phase = os.path.join(
-        #     data_dir, "miniImageNet_category_split_train_phase_test.pickle"
-        # )
-        # self.file_val_categories_val_phase = os.path.join(
-        #     data_dir, "miniImageNet_category_split_val.pickle"
-        # )
-        # self.file_test_categories_test_phase = os.path.join(
-        #     data_dir, "miniImageNet_category_split_test.pickle"
-        # )
-
         self.train_file = os.path.join(data_dir, "mini-imagenet-cache-train.pkl")
         self.val_file = os.path.join(data_dir, "mini-imagenet-cache-val.pkl")
         self.test_file = os.path.join(data_dir, "mini-imagenet-cache-test.pkl")
-
-        # TODO: comprendre les phases bizzare de mini-imagenet, genre train-train, val-val, train-val,
-        #  train-test, test-test...
-
-        # self.phase_to_file: dict = {
-        #     TrainingPhase.TRAIN: self.file_train_categories_train_phase,
-        #     TrainingPhase.VAL: self.file_val_categories_val_phase,
-        #     TrainingPhase.TEST: self.file_test_categories_test_phase,
-        # }
 
         self.phase_to_file: dict = {
             TrainingPhase.TRAIN: self.train_file,
@@ -175,41 +146,66 @@ class MiniImageNetDataset(DatasetBase):
         return _input/255.0
 
     def get_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
-        _data = util.load_pickle_data(self.phase_to_file.get(phase))
+        _raw_data = util.load_pickle_data(self.phase_to_file.get(phase))
+
+        # Convert original data to format [n_classes, n_img, w, h, c]
+        first_key = list(_raw_data['class_dict'])[0]
+        _data = np.zeros((len(_raw_data['class_dict']), len(_raw_data['class_dict'][first_key]), 84, 84, 3))
+        for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
+            _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
+
+        _data = self.preprocess_input(_data)
+        n_classes, n_img, _w, _h, _c = _data.shape
 
         if phase == TrainingPhase.TRAIN:
-            self._train_length = len(_data["data"])
+            self._train_length = _data.shape[0] * _data.shape[1]
         elif phase == TrainingPhase.VAL:
-            self._val_length = len(_data["data"])
+            self._val_length = _data.shape[0] * _data.shape[1]
         elif phase == TrainingPhase.TEST:
-            self._test_length = len(_data["data"])
+            self._test_length = _data.shape[0] * _data.shape[1]
 
-        self._add_labels(_data["labels"])
+        self._add_labels(_data[0])
 
         def _gen():
-            for _idx, (_image, _label) in enumerate(zip(_data["data"], _data["labels"])):
-                _image = self.preprocess_input(_image)
+            while True:
+                x_batch = np.zeros([self._batch_size, _w, _h, _c], dtype=np.float32)
+                ids_batch = np.zeros([self._batch_size, n_classes], dtype=np.float32)
+                y_batch = np.zeros([self._batch_size, n_classes], dtype=np.float32)
+                classes_ep = np.random.permutation(n_classes)[:self._batch_size]
+
+                for _i, i_class in enumerate(classes_ep):
+                    selected = np.random.permutation(n_img)[0]
+                    x_batch[_i] = _data[i_class, selected[:]]
+                    ids_batch[_i] = i_class
+
+                y_batch = tf.one_hot(ids_batch, n_classes).numpy()
 
                 if output_form == OutputForm.LABEL:
-                    yield _image, self._labels_to_one_hot[_label]
+                    return x_batch, ids_batch, y_batch
 
-                elif output_form == OutputForm.ROT:
-                    _rot = np.random.choice(list(self.possible_rotations))
-                    yield ndimage.rotate(_image, _rot, reshape=False), self.possible_rotations_to_one_hot[_rot]
+            # for _idx, (_image, _label) in enumerate(zip(_data["data"], _data["labels"])):
+            #     _image = self.preprocess_input(_image)
+            #
+            #     if output_form == OutputForm.LABEL:
+            #         yield _image, self._labels_to_one_hot[_label]
+            #
+            #     elif output_form == OutputForm.ROT:
+            #         _rot = np.random.choice(list(self.possible_rotations))
+            #         yield ndimage.rotate(_image, _rot, reshape=False), self.possible_rotations_to_one_hot[_rot]
+
+        if output_form == OutputForm.LABEL:
+            output_shapes = (tf.TensorShape([self.image_size, self.image_size, 3]),
+                             tf.TensorShape([n_classes]))
+        else:
+            raise NotImplementedError
 
         _ds = tf.data.Dataset.from_generator(
             _gen,
-            output_types=(tf.float32, tf.int32),
-            output_shapes=(tf.TensorShape([self.image_size, self.image_size, 3]),
-                           tf.TensorShape([self.get_output_size(output_form)])),
+            output_types=(tf.float32, tf.int16),
+            output_shapes=output_shapes,
         )
 
-        if kwargs.get("shuffle", True):
-            _ds = _ds.shuffle(buffer_size=len(_data["labels"]), seed=SEED)
-
-        _ds = _ds.batch(self._batch_size)
-
-        return _ds
+        return _ds.prefetch(tf.data.experimental.AUTOTUNE)
 
     def get_few_shot_generator(self, _n_way, _n_shot, _n_query,
                                phase: TrainingPhase,
@@ -229,7 +225,6 @@ class MiniImageNetDataset(DatasetBase):
         n_classes, n_img, _w, _h, _c = _data.shape
 
         def _gen():
-            from copy import deepcopy
             while True:
                 support = np.zeros([_n_way, _n_shot, _w, _h, _c], dtype=np.float32)
                 query = np.zeros([_n_way, _n_query, _w, _h, _c], dtype=np.float32)
@@ -241,9 +236,6 @@ class MiniImageNetDataset(DatasetBase):
                     query[_i] = _data[i_class, selected[_n_shot:]]
 
                 if output_form == OutputForm.FS:
-                    # while True:
-                    #     yield deepcopy(support)
-                    #     yield deepcopy(query)
                     yield support
                     yield query
                 elif output_form == OutputForm.FS_SL:
