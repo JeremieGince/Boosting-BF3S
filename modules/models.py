@@ -270,7 +270,7 @@ class CosineClassifier(FewShot):
             self.sl_support_loss, _ = self.sl_model.call(support)
 
     def apply_query(self, _query):
-        loss_few, acc_few = self.apply_query_proto(_query)
+        loss_few, acc_few = self._apply_query_cosine(_query)
 
         if self.sl_classifier is None:
             return loss_few, acc_few
@@ -278,7 +278,7 @@ class CosineClassifier(FewShot):
             sl_loss = tf.reduce_mean(tf.concat([self.sl_support_loss, self.sl_query_loss], axis=0))
             return loss_few + self.alpha * sl_loss, acc_few
 
-    def apply_query_proto(self, query):
+    def _apply_query_cosine(self, query):
         n_query = query.shape[1]
         y = np.tile(np.arange(self.n_class)[:, np.newaxis], (1, n_query))
         y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
