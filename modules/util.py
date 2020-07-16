@@ -194,7 +194,8 @@ def calc_cosine_dists(x, y):
     m = y.shape[0]
     x = tf.tile(tf.expand_dims(x, 1), [1, m, 1])
     y = tf.tile(tf.expand_dims(y, 0), [n, 1, 1])
-    return tf.reduce_mean(tf.math.pow(x - y, 2), 2)
+
+    return tf.reduce_mean(tf.multiply(tf.keras.utils.normalize(x), tf.keras.utils.normalize(y)), 2)
 
 
 class SLBoostedType(enum.Enum):
