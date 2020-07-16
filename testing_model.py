@@ -3,72 +3,58 @@ from modules.modelManagers import FewShotImgLearner
 from modules.trainers import FewShotTrainer
 from modules.modelManagers import NetworkManagerCallback
 import modules.util as util
+from config.prototypical_config import config as proto_config
+from config.prototypical_rotation_config import config as proto_rot_config
+from config.cosine_config import config as cosine_config
+from config.cosine_rotation_config import config as cosine_rot_config
 
 import tensorflow as tf
+import numpy as np
 import sys
 
 
 if __name__ == '__main__':
+    _mth_to_config = {
+        "proto": proto_config,
+        "proto_rot": proto_rot_config,
+        "cosine": cosine_config,
+        "cosine_rot": cosine_rot_config,
+    }
 
-    way = 30
-    t_way = 5
-    shot = 5
-    t_shot = 5
-    backbone = "conv-4-64"
-
-    cerebus = not False
-
-    data_dir = r"D:\Datasets\mini-imagenet"
-
+    cerebus = False
     if len(sys.argv) > 1:
         data_dir = sys.argv[1]
+        _mth = sys.argv[2]
         cerebus = True
+    else:
+        _mth = "proto"
+    assert _mth in _mth_to_config, f"Method {_mth} is not recognized"
 
-    mini_image_net = MiniImageNetDataset(
-        data_dir=data_dir
-    )
+    opt = _mth_to_config[_mth]
+    opt["Model_parameters"]["name"] = opt["Model_parameters"]["name"]+f"{'_c' if cerebus else ''}"
 
-    few_shot_learner = FewShotImgLearner(
-        name=f"prototypical_few_shot_learner-{backbone}_backbone_"
-             f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_085{'_c' if cerebus else ''}_67acc",
-        image_size=mini_image_net.image_size,
-        backbone=backbone,
-        optimizer_args={},
-        learning_rate=1e-3,
-        optimizer=tf.keras.optimizers.Adam,
-    )
+    tf.random.set_seed(opt["Tensorflow_constants"]["seed"])
+    np.random.seed(opt["Tensorflow_constants"]["seed"])
+
+    mini_image_net = MiniImageNetDataset(**opt["Dataset_parameters"])
+
+    few_shot_learner = FewShotImgLearner(**opt["Model_parameters"])
     few_shot_learner.build_and_compile()
 
     network_callback = NetworkManagerCallback(
         network_manager=few_shot_learner,
-        verbose=False,
-        save_freq=1,
-        early_stopping=True,
-        patience=50,
-        learning_rate_decay_enabled=True,
-        learning_rate_decay_factor=0.85,
-        learning_rate_decay_freq=20,
+        **opt["Network_callback_parameters"]
     )
 
     few_shot_trainer = FewShotTrainer(
         model_manager=few_shot_learner,
         dataset=mini_image_net,
-
-        # few shot params
-        n_way=way,
-        n_test_way=t_way,
-        n_shot=shot,
-        n_test_shot=t_shot,
-        n_query=15,
-        n_test_query=5,
-        n_train_episodes=100,
-        n_val_episodes=100,
-        n_test_episodes=600,
-
-        # callback params
         network_callback=network_callback,
+        **opt["Trainer_parameters"],
     )
 
+    print(util.get_str_repr_for_config(opt))
     print(few_shot_trainer.config)
     few_shot_trainer.test(n=10)
 
+    util.plotHistory(few_shot_learner.history, savename="training_curve_"+few_shot_learner.name, savefig=not cerebus)
