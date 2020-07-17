@@ -21,9 +21,9 @@ config = {
 
     "Model_parameters": {
         "name": f"prototypical_boosted_few_shot_rot-{backbone}_"
-                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_SGD1e-3",
+                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_alpha100_SGD1e-3",
         "method": FewShotImgLearner.Method.PrototypicalNet,
-        "alpha": 0.7,
+        "alpha": 1.00,
         "sl_boosted_type": util.SLBoostedType.ROT,
         "sl_kwargs": {
             "hidden_neurons": [640 for _ in range(4)]
