@@ -27,10 +27,12 @@ if __name__ == '__main__':
         _mth = sys.argv[2]
         cerebus = True
     else:
+        data_dir = r"D:\Datasets\mini-imagenet"
         _mth = "proto_rot"
     assert _mth in _mth_to_config, f"Method {_mth} is not recognized"
 
     opt = _mth_to_config[_mth]
+    opt["Dataset"]["data_dir"] = data_dir
     opt["Model_parameters"]["name"] = opt["Model_parameters"]["name"]+f"{'_c' if cerebus else ''}"
 
     tf.random.set_seed(opt["Tensorflow_constants"]["seed"])
