@@ -32,7 +32,7 @@ if __name__ == '__main__':
     assert _mth in _mth_to_config, f"Method {_mth} is not recognized"
 
     opt = _mth_to_config[_mth]
-    opt["Dataset"]["data_dir"] = data_dir
+    opt["Dataset_parameters"]["data_dir"] = data_dir
     opt["Model_parameters"]["name"] = opt["Model_parameters"]["name"]+f"{'_c' if cerebus else ''}"
 
     tf.random.set_seed(opt["Tensorflow_constants"]["seed"])
