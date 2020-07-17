@@ -21,7 +21,7 @@ config = {
 
     "Model_parameters": {
         "name": f"prototypical_boosted_few_shot_rot-{backbone}_"
-                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_Adam",
+                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_SGD1e-3",
         "method": FewShotImgLearner.Method.PrototypicalNet,
         "alpha": 0.7,
         "sl_boosted_type": util.SLBoostedType.ROT,
@@ -29,14 +29,14 @@ config = {
             "hidden_neurons": [640 for _ in range(4)]
         },
         "learning_rate": 1e-3,
-        # "optimizer_args": {
-        #     "momentum": 0.9,
-        #     "decay": 5e-4,
-        #     "nesterov": True,
-        # },
-        # optimizer=tf.keras.optimizers.SGD,
-        "optimizer_args": {},
-        "optimizer": tf.keras.optimizers.Adam,
+        "optimizer_args": {
+            "momentum": 0.9,
+            "decay": 5e-4,
+            "nesterov": True,
+        },
+        "optimizer": tf.keras.optimizers.SGD,
+        # "optimizer_args": {},
+        # "optimizer": tf.keras.optimizers.Adam,
     },
 
     "Network_callback_parameters": {
