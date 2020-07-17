@@ -27,7 +27,7 @@ if __name__ == '__main__':
         _mth = sys.argv[2]
         cerebus = True
     else:
-        _mth = "proto"
+        _mth = "proto_rot"
     assert _mth in _mth_to_config, f"Method {_mth} is not recognized"
 
     opt = _mth_to_config[_mth]
