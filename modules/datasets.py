@@ -168,12 +168,11 @@ class MiniImageNetDataset(DatasetBase):
 
         def _gen():
             while True:
-                x_batch = np.zeros([self._batch_size, _w, _h, _c], dtype=np.float32)
-                ids_batch = np.zeros([self._batch_size, n_classes], dtype=np.float32)
-                y_batch = np.zeros([self._batch_size, n_classes], dtype=np.float32)
-                classes_ep = np.random.permutation(n_classes)[:self._batch_size]
+                x_batch = np.zeros([n_classes, _w, _h, _c], dtype=np.float32)
+                ids_batch = np.zeros([n_classes, 1], dtype=np.float32)
+                y_batch = np.zeros([n_classes, n_classes], dtype=np.float32)
 
-                for _i, i_class in enumerate(classes_ep):
+                for _i, i_class in enumerate(n_classes):
                     selected = np.random.permutation(n_img)[0]
                     x_batch[_i] = _data[i_class, selected[:]]
                     ids_batch[_i] = i_class
@@ -182,6 +181,22 @@ class MiniImageNetDataset(DatasetBase):
 
                 if output_form == OutputForm.LABEL:
                     return x_batch, ids_batch, y_batch
+
+            # while True:
+            #     x_batch = np.zeros([self._batch_size, _w, _h, _c], dtype=np.float32)
+            #     ids_batch = np.zeros([self._batch_size, n_classes], dtype=np.float32)
+            #     y_batch = np.zeros([self._batch_size, n_classes], dtype=np.float32)
+            #     classes_ep = np.random.permutation(n_classes)[:self._batch_size]
+            #
+            #     for _i, i_class in enumerate(classes_ep):
+            #         selected = np.random.permutation(n_img)[0]
+            #         x_batch[_i] = _data[i_class, selected[:]]
+            #         ids_batch[_i] = i_class
+            #
+            #     y_batch = tf.one_hot(ids_batch, n_classes).numpy()
+            #
+            #     if output_form == OutputForm.LABEL:
+            #         return x_batch, ids_batch, y_batch
 
             # for _idx, (_image, _label) in enumerate(zip(_data["data"], _data["labels"])):
             #     _image = self.preprocess_input(_image)
