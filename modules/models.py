@@ -38,6 +38,10 @@ class FewShot(tf.keras.Model):
         self.w, self.h, self.c = w, h, c
         self.backbone = backbone
         self.sl_model = sl_model
+        self.alpha = kwargs.get("alpha", 1.0)
+
+        self.sl_support_loss = None
+        self.sl_query_loss = None
 
     def set_support(self, support):
         raise NotImplementedError
@@ -78,14 +82,10 @@ class Prototypical(FewShot):
             sl_model,
             **kwargs
         )
-        self.alpha = kwargs.get("alpha", 1.0)
 
         self.z_prototypes = None
         self.n_class = None
         self.n_support = None
-
-        self.sl_support_loss = None
-        self.sl_query_loss = None
 
     def call(self,  _inputs, training=None, mask=None):
         return self.call_proto(*_inputs)
@@ -223,16 +223,15 @@ class CosineClassifier(FewShot):
             sl_model,
             **kwargs
         )
-        self.alpha = kwargs.get("alpha", 1.0)
 
-        self.nkall = kwargs.get("nkall", 1)
+        self.n_cls_base = kwargs.get("n_cls_base", 1)
         self.nFeat = self.backbone.output_shape
 
         self.n_class = None
         self.n_support = None
 
         self.weight_base = tf.Variable(
-            np.random.normal(0.0, np.sqrt(2.0/self.nFeat), size=(self.nkall, self.nFeat)),
+            np.random.normal(0.0, np.sqrt(2.0/self.nFeat), size=(self.n_cls_base, self.nFeat)),
             trainable=True
         )
         self.bias = tf.Variable(0.0, trainable=True)
@@ -240,17 +239,16 @@ class CosineClassifier(FewShot):
 
         self.z_prototypes = None
 
-        self.sl_support_loss = None
-        self.sl_query_loss = None
-
     def call(self, inputs, training=None, mask=None):
         x_batch, ids_batch = inputs
-        x_feats = self.backbone(x_batch)
-        x_feats_normalized = tf.keras.utils.normalize(x_feats, axis=-1, order=2)
-        # TODO: il faut prendre seulement les weights associés aux bon features avec les indices
-        weights_normalized = tf.keras.utils.normalize(self.weight_base, axis=-1, order=2)  # TODO: savoir je dois remplacer self.weight_base
+        x_feats = self.backbone(x_batch)  # shape: [n_cls, n_feats]
 
-        cls_scores = self.scale_cls * tf.multiply(x_feats_normalized, weights_normalized)  # TODO: va peut-etre falloire transposer les weights
+        # normalization
+        x_feats_normalized = tf.keras.utils.normalize(x_feats, axis=-1, order=2)
+        weights_normalized = tf.keras.utils.normalize(self.weight_base, axis=-1, order=2)
+
+        # scores [n_cls, n_cls] = scale_cls [1,] * x_feats_norm [n_cls, n_feats] \dot w_norm.T [n_feats, n_cls]
+        cls_scores = self.scale_cls * tf.keras.backend.dot(x_feats_normalized, tf.transpose(weights_normalized))
 
         sl_loss, sl_acc = self.sl_model.call(x_batch)
 
