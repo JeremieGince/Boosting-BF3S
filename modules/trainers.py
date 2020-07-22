@@ -115,17 +115,6 @@ class Trainer:
 
         return history
 
-    def loss(self, x, y, training):
-        # training=training is needed only if there are layers with different
-        # behavior during training versus inference (e.g. Dropout).
-        y_ = self.model(x, training=training)
-        return self.model.loss(y_true=y, y_pred=y_)
-
-    def grad(self, inputs, targets):
-        with tf.GradientTape() as tape:
-            loss_value = self.loss(inputs, targets, training=True)
-        return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
-
     def do_epoch(self, epoch: int):
         # calling the callback
         self.network_callback.on_epoch_begin(epoch)
@@ -401,38 +390,35 @@ class FewShotTrainer(Trainer):
 
 if __name__ == '__main__':
     from modules.datasets import MiniImageNetDataset, OutputForm
-    from modules.models import SelfLearnerWithImgRotation
-    from modules.hyperparameters import *
+    from modules.modelManagers import SelfLearnerWithImgRotation
     import time
 
-    # # -----------------------------------------------------------------------------------------------------------------
-    # # hyper-parameters
-    # # -----------------------------------------------------------------------------------------------------------------
-    # tf.random.set_seed(SEED)
-    # print(get_str_repr_for_hyper_params())
-    #
-    # mini_imagenet_dataset = MiniImageNetDataset(
-    #     image_size=IMG_SIZE,
-    #     batch_size=64
-    # )
-    #
-    # self_learner = SelfLearnerWithImgRotation(
-    #     name="SelfLearnerWithImgRotation",
-    #     image_size=mini_imagenet_dataset.image_size,
-    #     output_size=mini_imagenet_dataset.get_output_size(OutputForm.ROT),
-    # )
-    # self_learner.build_and_compile()
-    # self_learner.summary()
-    #
-    # # -----------------------------------------------------------------------------------------------------------------
-    # # Training the self learner with rotation
-    # # -----------------------------------------------------------------------------------------------------------------
-    # self_trainer = Trainer(
-    #     model_manager=self_learner,
-    #     dataset=mini_imagenet_dataset
-    # )
-    #
-    # start_time = time.time()
-    # self_trainer.train(epochs=2)
-    # end_feature_training_time = time.time() - start_time
-    # print(f"--- Elapse feature training time: {end_feature_training_time} [s] ---")
+    # -----------------------------------------------------------------------------------------------------------------
+    # hyper-parameters
+    # -----------------------------------------------------------------------------------------------------------------
+
+    mini_imagenet_dataset = MiniImageNetDataset(
+        image_size=84,
+        batch_size=64
+    )
+
+    self_learner = SelfLearnerWithImgRotation(
+        name="SelfLearnerWithImgRotation",
+        image_size=mini_imagenet_dataset.image_size,
+        output_size=mini_imagenet_dataset.get_output_size(OutputForm.ROT),
+    )
+    self_learner.build_and_compile()
+    self_learner.summary()
+
+    # -----------------------------------------------------------------------------------------------------------------
+    # Training the self learner with rotation
+    # -----------------------------------------------------------------------------------------------------------------
+    self_trainer = Trainer(
+        model_manager=self_learner,
+        dataset=mini_imagenet_dataset
+    )
+
+    start_time = time.time()
+    self_trainer.train(epochs=2)
+    end_feature_training_time = time.time() - start_time
+    print(f"--- Elapse feature training time: {end_feature_training_time} [s] ---")

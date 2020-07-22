@@ -164,23 +164,25 @@ class MiniImageNetDataset(DatasetBase):
         elif phase == TrainingPhase.TEST:
             self._test_length = _data.shape[0] * _data.shape[1]
 
-        self._add_labels(_data[0])
+        # self._add_labels(_data[0])
 
         def _gen():
             while True:
                 x_batch = np.zeros([n_classes, _w, _h, _c], dtype=np.float32)
-                ids_batch = np.zeros([n_classes, 1], dtype=np.float32)
-                y_batch = np.zeros([n_classes, n_classes], dtype=np.float32)
+                ids_batch = np.zeros([n_classes, 1], dtype=np.int32)
+                y_batch = np.zeros([n_classes, n_classes], dtype=np.int32)
 
-                for _i, i_class in enumerate(n_classes):
+                for _i, i_class in enumerate(range(n_classes)):
                     selected = np.random.permutation(n_img)[0]
-                    x_batch[_i] = _data[i_class, selected[:]]
+                    x_batch[_i] = _data[i_class, selected]
                     ids_batch[_i] = i_class
 
-                y_batch = tf.one_hot(ids_batch, n_classes).numpy()
+                y_batch = tf.cast(tf.one_hot(tf.convert_to_tensor(ids_batch.squeeze(), tf.int32), n_classes), tf.int32).numpy()
 
                 if output_form == OutputForm.LABEL:
-                    return x_batch, ids_batch, y_batch
+                    yield x_batch, ids_batch, y_batch
+                elif output_form == OutputForm.ROT:
+                    yield x_batch, ids_batch, y_batch
 
             # while True:
             #     x_batch = np.zeros([self._batch_size, _w, _h, _c], dtype=np.float32)
@@ -210,13 +212,18 @@ class MiniImageNetDataset(DatasetBase):
 
         if output_form == OutputForm.LABEL:
             output_shapes = (tf.TensorShape([self.image_size, self.image_size, 3]),
-                             tf.TensorShape([n_classes]))
+                             tf.TensorShape([n_classes, 1]),
+                             tf.TensorShape([n_classes, n_classes]))
+        elif output_form == OutputForm.ROT:
+            output_shapes = (tf.TensorShape([None, self.image_size, self.image_size, 3]),
+                             tf.TensorShape([n_classes, 1]),
+                             tf.TensorShape([n_classes, n_classes]))
         else:
             raise NotImplementedError
 
         _ds = tf.data.Dataset.from_generator(
             _gen,
-            output_types=(tf.float32, tf.int16),
+            output_types=(tf.float32, tf.int32, tf.int32),
             output_shapes=output_shapes,
         )
 

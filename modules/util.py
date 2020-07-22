@@ -216,7 +216,7 @@ def get_str_repr_for_secs_config(config: dict, secs: list):
     return _str
 
 
-def get_str_repr_for_sec_config(config:dict, sec: str):
+def get_str_repr_for_sec_config(config: dict, sec: str):
     assert sec in config.keys(), f"The param: 'sec' must be in {config.keys()}"
     _str = ""
 
@@ -225,8 +225,11 @@ def get_str_repr_for_sec_config(config:dict, sec: str):
     _str += str(sec) + '\n'
     _str += '-' * 25 + '\n'
 
-    for param, value in sec_dict.items():
-        _str += f"{param}: {value} \n"
+    if isinstance(sec_dict, dict):
+        for param, value in sec_dict.items():
+            _str += f"{param}: {value} \n"
+    else:
+        _str += f"{sec_dict} \n"
 
     _str += '\n'
     return _str

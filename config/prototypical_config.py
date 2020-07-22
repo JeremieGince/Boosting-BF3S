@@ -18,6 +18,7 @@ config = {
         "data_dir": r"D:\Datasets\mini-imagenet"
     },
 
+    "model_type": FewShotImgLearner,
     "Model_parameters": {
         "name": f"prototypical_few_shot-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_Adam",
@@ -39,7 +40,9 @@ config = {
         "learning_rate_decay_freq": 20,
     },
 
-    "Trainer_parameters": {
+    "Batch_Trainer_parameters": None,
+
+    "FewShot_Trainer_parameters": {
         "n_way": way,
         "n_test_way": t_way,
         "n_shot": shot,

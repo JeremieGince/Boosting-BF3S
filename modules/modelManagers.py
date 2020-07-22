@@ -227,7 +227,7 @@ class SelfLearnerWithImgRotation(NetworkModelManager):
 
     def build(self):
         self.model = SLRotationModel(
-            self.available_backbones.get(self._backbone)(
+            backbone=self.available_backbones.get(self._backbone)(
                 **self._backbone_args, **self._backbone_kwargs
             ),
             nb_hidden_layers=self._nb_hidden_layer,
@@ -309,8 +309,3 @@ if __name__ == '__main__':
     self_learner = SelfLearnerWithImgRotation()
     self_learner.build_and_compile()
     self_learner.summary()
-
-    self_learner.update_history({"loss": [0.16546546874, ], "accuracy": np.array([0.156496848, ])})
-    self_learner.save_history()
-    self_learner.load_history()
-    print(self_learner.history)

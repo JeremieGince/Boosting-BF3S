@@ -15,7 +15,7 @@ config = {
     "Dataset_parameters": {
         "data_dir": r"D:\Datasets\mini-imagenet"
     },
-
+    "model_type": FewShotImgLearner,
     "Model parameters": {
         "name": f"cosine_classifier-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot",
@@ -43,7 +43,9 @@ config = {
         "learning_rate_decay_freq": 20,
     },
 
-    "Trainer_parameters": {
+    "Batch_Trainer_parameters": None,
+
+    "FewShot_Trainer_parameters": {
 
     }
 }

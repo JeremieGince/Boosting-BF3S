@@ -346,8 +346,8 @@ class SLRotationModel(tf.keras.Model):
                     Dense(h),
                     BatchNormalization(),
                     ReLU(),
-                ], name="Dense_Block")
-                for h in self._hidden_neurons
+                ], name=f"Dense_Block_{i}")
+                for i, h in enumerate(self._hidden_neurons)
             ],
             Dense(self._sl_output_size, name="sl_rot_output_layer"),
             Softmax(dtype=tf.float32),
@@ -358,7 +358,8 @@ class SLRotationModel(tf.keras.Model):
         self._cls = tf.keras.Model(inputs=self._cls_input, outputs=self._seq(self._cls_input))
 
     def call(self, inputs, training=None, mask=None):
-        sl_x, sl_y = self._get_sl_set_args(inputs)
+        _in, *_ = inputs
+        sl_x, sl_y = self._get_sl_set_args(_in)
 
         sl_y_pred = self._cls(self.backbone(sl_x))
 
