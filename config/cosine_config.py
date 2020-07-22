@@ -24,15 +24,6 @@ config = {
         "method": FewShotImgLearner.Method.CosineNet,
         "alpha": None,
         "sl_kwargs": None,
-        "learning_rate": 1e-3,
-        "optimizer_args": {
-            "momentum": 0.9,
-            "decay": 5e-4,
-            "nesterov": True,
-        },
-        "optimizer": tf.keras.optimizers.SGD,
-        # "optimizer_args": {},
-        # "optimizer": tf.keras.optimizers.Adam,
         "n_cls_base": 64,
     },
 
@@ -51,6 +42,17 @@ config = {
         "n_val_batch": 0,
         "n_epochs": batch_epochs,
         "n_test": 0,
+
+        # optimizer
+        "learning_rate": 1e-3,
+        # "optimizer_args": {
+        #     "momentum": 0.9,
+        #     "decay": 5e-4,
+        #     "nesterov": True,
+        # },
+        # "optimizer": tf.keras.optimizers.SGD,
+        "optimizer_args": {},
+        "optimizer": tf.keras.optimizers.Adam,
     },
 
     "FewShot_Trainer_parameters": {
@@ -63,7 +65,18 @@ config = {
         "n_train_episodes": 100,
         "n_val_episodes": 100,
         "n_test_episodes": 600,
-        "n_epochs": 300,
+        "n_epochs": batch_epochs + 300,
         "n_test": 10,
+
+        # optimizer
+        "learning_rate": 1e-1,
+        "optimizer_args": {
+            "momentum": 0.9,
+            "decay": 5e-4,
+            "nesterov": True,
+        },
+        "optimizer": tf.keras.optimizers.SGD,
+        # "optimizer_args": {},
+        # "optimizer": tf.keras.optimizers.Adam,
     }
 }

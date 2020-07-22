@@ -248,7 +248,7 @@ class CosineClassifier(FewShot):
         x_feats_normalized = tf.math.l2_normalize(x_feats, axis=-1)
         weights_normalized = tf.math.l2_normalize(self.weight_base, axis=-1)
 
-        # similarity [n_cls, n_cls] = scale_cls [1,] * x_feats_norm [n_cls, n_feats] \dot w_norm.T [n_feats, n_cls]
+        # similarity [n_cls, n_cls] = x_feats_norm [n_cls, n_feats] \dot w_norm.T [n_feats, n_cls]
         cls_similarity = tf.keras.backend.dot(x_feats_normalized, tf.transpose(weights_normalized))
 
         log_p_y = tf.nn.log_softmax(self.scale_cls * cls_similarity, axis=-1)
