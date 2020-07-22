@@ -1,11 +1,13 @@
 import tensorflow as tf
 from modules.modelManagers import FewShotImgLearner
 
-way = 6
+way = 30
 t_way = 5
 shot = 5
 t_shot = 5
 backbone = "conv-4-64"
+
+batch_epochs = 300
 
 config = {
     "Tensorflow_constants": {
@@ -22,7 +24,7 @@ config = {
         "method": FewShotImgLearner.Method.CosineNet,
         "alpha": None,
         "sl_kwargs": None,
-        "learning_rate": 1e-1,
+        "learning_rate": 1e-3,
         "optimizer_args": {
             "momentum": 0.9,
             "decay": 5e-4,
@@ -38,7 +40,7 @@ config = {
         "verbose": False,
         "save_freq": 1,
         "early_stopping": True,
-        "patience": 50,
+        "patience": batch_epochs+50,
         "learning_rate_decay_enabled": True,
         "learning_rate_decay_factor": 0.85,
         "learning_rate_decay_freq": 20,
@@ -47,7 +49,7 @@ config = {
     "Batch_Trainer_parameters": {
         "n_train_batch": 100,
         "n_val_batch": 0,
-        "n_epochs": 300,
+        "n_epochs": batch_epochs,
         "n_test": 0,
     },
 

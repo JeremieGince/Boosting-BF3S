@@ -294,9 +294,10 @@ class CosineClassifier(FewShot):
     def apply_query(self, _query):
         loss_few, acc_few = self._apply_query_cosine(_query)
 
-        if self.sl_classifier is None:
+        if self.sl_model is None:
             return loss_few, acc_few
         else:
+            self.sl_query_loss, _ = self.sl_model.call(_query)
             sl_loss = tf.reduce_mean(tf.concat([self.sl_support_loss, self.sl_query_loss], axis=0))
             return loss_few + self.alpha * sl_loss, acc_few
 

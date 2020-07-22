@@ -59,7 +59,8 @@ if __name__ == '__main__':
             **opt["Batch_Trainer_parameters"]
         )
         batch_trainer.train(epochs=opt["Batch_Trainer_parameters"]["n_epochs"], final_testing=False)
-        batch_trainer.test(n=opt["Batch_Trainer_parameters"]["n_test"])
+        if opt["Batch_Trainer_parameters"]["n_test"]:
+            batch_trainer.test(n=opt["Batch_Trainer_parameters"]["n_test"])
 
     if opt["FewShot_Trainer_parameters"] is not None:
         few_shot_trainer = FewShotTrainer(
@@ -69,6 +70,7 @@ if __name__ == '__main__':
             **opt["FewShot_Trainer_parameters"],
         )
         few_shot_trainer.train(epochs=opt["FewShot_Trainer_parameters"]["n_epochs"], final_testing=False)
-        few_shot_trainer.test(n=opt["FewShot_Trainer_parameters"]["n_test"])
+        if opt["FewShot_Trainer_parameters"]["n_test"]:
+            few_shot_trainer.test(n=opt["FewShot_Trainer_parameters"]["n_test"])
 
     util.plotHistory(network_manager.history, savename="training_curve_" + network_manager.name, savefig=not cerebus)

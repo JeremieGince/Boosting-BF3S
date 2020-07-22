@@ -293,6 +293,9 @@ class FewShotImgLearner(NetworkModelManager):
         return self.model
 
     def _build_cosine_net(self):
+        import logging
+        tf.get_logger().setLevel(logging.ERROR)
+
         backbone = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
         sl_model = get_sl_model(backbone, self.sl_add_on, **self.sl_kwargs) if self.sl_add_on is not None else None
 
