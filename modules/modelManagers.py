@@ -273,6 +273,8 @@ class FewShotImgLearner(NetworkModelManager):
         self.sl_add_on: util.SLBoostedType = kwargs.get("sl_boosted_type", None)
         self.sl_kwargs = kwargs.get("sl_kwargs", {})
 
+        self.kwargs = kwargs
+
     def build(self):
         return self._methods_to_build.get(self.method)()
 
@@ -292,7 +294,7 @@ class FewShotImgLearner(NetworkModelManager):
 
     def _build_cosine_net(self):
         backbone = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
-        sl_model = get_sl_model(backbone, self.sl_add_on, **self.sl_kwargs)
+        sl_model = get_sl_model(backbone, self.sl_add_on, **self.sl_kwargs) if self.sl_add_on is not None else None
 
         self.model = CosineClassifier(
             w=self.img_size,
@@ -300,6 +302,7 @@ class FewShotImgLearner(NetworkModelManager):
             c=self.channels,
             backbone=backbone,
             sl_model=sl_model,
+            **self.kwargs
         )
 
         return self.model

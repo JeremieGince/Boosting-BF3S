@@ -183,6 +183,8 @@ class MiniImageNetDataset(DatasetBase):
                     yield x_batch, ids_batch, y_batch
                 elif output_form == OutputForm.ROT:
                     yield x_batch, ids_batch, y_batch
+                else:
+                    yield x_batch, ids_batch, y_batch
 
             # while True:
             #     x_batch = np.zeros([self._batch_size, _w, _h, _c], dtype=np.float32)
@@ -219,7 +221,9 @@ class MiniImageNetDataset(DatasetBase):
                              tf.TensorShape([n_classes, 1]),
                              tf.TensorShape([n_classes, n_classes]))
         else:
-            raise NotImplementedError
+            output_shapes = (tf.TensorShape([None, self.image_size, self.image_size, 3]),
+                             tf.TensorShape([n_classes, 1]),
+                             tf.TensorShape([n_classes, n_classes]))
 
         _ds = tf.data.Dataset.from_generator(
             _gen,

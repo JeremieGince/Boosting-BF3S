@@ -145,13 +145,13 @@ class Trainer:
             if phase == util.TrainingPhase.TRAIN:
                 with tf.GradientTape() as tape:
                     _inputs = next(_data_itr)
-                    batch_logs = self.modelManager.compute_metrics(_inputs)  # TODO: ask ModelManager to get metrics dict as logs
+                    batch_logs = self.modelManager.compute_metrics(_inputs, training=True)  # TODO: ask ModelManager to get metrics dict as logs
 
                 grads = tape.gradient(batch_logs["loss"], self.model.trainable_variables)
                 self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
             elif phase == util.TrainingPhase.VAL:
                 _inputs = next(_data_itr)
-                batch_logs = self.modelManager.compute_metrics(_inputs)
+                batch_logs = self.modelManager.compute_metrics(_inputs, training=False)
             else:
                 raise NotImplementedError(f"Training phase: {phase} not implemented")
 
@@ -162,7 +162,7 @@ class Trainer:
 
             # update progress
             self.progress.update(1 / total_episodes)
-            self.progress.set_postfix_str(f"batch: {batch_idx}/{self.n_training_batches[phase]} -> "
+            self.progress.set_postfix_str(f"batch: {batch_idx+1}/{self.n_training_batches[phase]} -> "
                                           + ' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
                                                        for k, v in self.running_metrics.items()]))
 
@@ -192,7 +192,7 @@ class Trainer:
 
         for i in range(n):
             _inputs = next(_data_itr)
-            loss, acc = self.model.call(_inputs)
+            loss, acc = self.model.call(_inputs, training=False)
 
             # Track progress
             # TODO: get metrics automatically

@@ -29,7 +29,7 @@ if __name__ == '__main__':
         cerebus = True
     else:
         data_dir = r"D:\Datasets\mini-imagenet"
-        _mth = "sl_rot"
+        _mth = "cosine"
     assert _mth in _mth_to_config, f"Method {_mth} is not recognized"
 
     opt = _mth_to_config[_mth]
@@ -58,8 +58,8 @@ if __name__ == '__main__':
             network_callback=network_callback,
             **opt["Batch_Trainer_parameters"]
         )
-        batch_trainer.train(epochs=300, final_testing=False)
-        batch_trainer.test(n=10)
+        batch_trainer.train(epochs=opt["Batch_Trainer_parameters"]["n_epochs"], final_testing=False)
+        batch_trainer.test(n=opt["Batch_Trainer_parameters"]["n_test"])
 
     if opt["FewShot_Trainer_parameters"] is not None:
         few_shot_trainer = FewShotTrainer(
@@ -68,7 +68,7 @@ if __name__ == '__main__':
             network_callback=network_callback,
             **opt["FewShot_Trainer_parameters"],
         )
-        few_shot_trainer.train(epochs=300, final_testing=False)
-        few_shot_trainer.test(n=10)
+        few_shot_trainer.train(epochs=opt["FewShot_Trainer_parameters"]["n_epochs"], final_testing=False)
+        few_shot_trainer.test(n=opt["FewShot_Trainer_parameters"]["n_test"])
 
     util.plotHistory(network_manager.history, savename="training_curve_" + network_manager.name, savefig=not cerebus)

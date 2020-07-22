@@ -225,32 +225,56 @@ class CosineClassifier(FewShot):
         )
 
         self.n_cls_base = kwargs.get("n_cls_base", 1)
-        self.nFeat = self.backbone.output_shape
+        self.nFeat = self.backbone.output_shape[-1]
 
         self.n_class = None
         self.n_support = None
 
         self.weight_base = tf.Variable(
             np.random.normal(0.0, np.sqrt(2.0/self.nFeat), size=(self.n_cls_base, self.nFeat)),
+            dtype=tf.float32,
             trainable=True
         )
-        self.bias = tf.Variable(0.0, trainable=True)
+        # self.bias = tf.Variable(0.0, trainable=True)
         self.scale_cls = tf.Variable(10.0, trainable=True)
 
         self.z_prototypes = None
 
     def call(self, inputs, training=None, mask=None):
-        x_batch, ids_batch = inputs
+        x_batch, ids_batch, y_batch = inputs
         x_feats = self.backbone(x_batch)  # shape: [n_cls, n_feats]
 
         # normalization
-        x_feats_normalized = tf.keras.utils.normalize(x_feats, axis=-1, order=2)
-        weights_normalized = tf.keras.utils.normalize(self.weight_base, axis=-1, order=2)
+        x_feats_normalized = tf.math.l2_normalize(x_feats, axis=-1)
+        weights_normalized = tf.math.l2_normalize(self.weight_base, axis=-1)
 
-        # scores [n_cls, n_cls] = scale_cls [1,] * x_feats_norm [n_cls, n_feats] \dot w_norm.T [n_feats, n_cls]
-        cls_scores = self.scale_cls * tf.keras.backend.dot(x_feats_normalized, tf.transpose(weights_normalized))
+        # similarity [n_cls, n_cls] = scale_cls [1,] * x_feats_norm [n_cls, n_feats] \dot w_norm.T [n_feats, n_cls]
+        cls_similarity = tf.keras.backend.dot(x_feats_normalized, tf.transpose(weights_normalized))
 
-        sl_loss, sl_acc = self.sl_model.call(x_batch)
+        log_p_y = tf.nn.log_softmax(self.scale_cls * cls_similarity, axis=-1)
+
+        loss_few = -tf.reduce_mean(
+            tf.reshape(
+                tf.reduce_sum(
+                    tf.multiply(
+                        tf.cast(y_batch, tf.float32), tf.cast(log_p_y, tf.float32)
+                    ), axis=-1
+                ), [-1]
+            )
+        )
+        eq = tf.cast(
+            tf.equal(
+                tf.cast(tf.argmax(log_p_y, axis=-1), tf.int32),
+                tf.cast(ids_batch, tf.int32)
+            ), tf.float32
+        )
+        acc_few = tf.reduce_mean(eq)
+
+        if self.sl_model is None:
+            return loss_few, acc_few
+        else:
+            sl_loss, sl_acc = self.sl_model.call(x_batch)
+            return loss_few + self.alpha * sl_loss, acc_few
 
     def set_support(self, support):
         self.n_class = support.shape[0]
