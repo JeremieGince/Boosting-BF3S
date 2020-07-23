@@ -177,7 +177,10 @@ class MiniImageNetDataset(DatasetBase):
                     x_batch[_i] = _data[i_class, selected]
                     ids_batch[_i] = i_class
 
-                y_batch = tf.cast(tf.one_hot(tf.convert_to_tensor(ids_batch.squeeze(), tf.int32), n_classes), tf.int32).numpy()
+                y_batch = tf.cast(
+                    tf.one_hot(tf.convert_to_tensor(ids_batch.squeeze(), tf.int32), n_classes),
+                    tf.int32
+                ).numpy()
 
                 if output_form == OutputForm.LABEL:
                     yield x_batch, ids_batch, y_batch
@@ -245,9 +248,7 @@ class MiniImageNetDataset(DatasetBase):
         for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
             _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
 
-        # print(_data.shape, _data[..., 0])
         _data = self.preprocess_input(_data)
-        # print(_data.shape, _data[..., 0])
         n_classes, n_img, _w, _h, _c = _data.shape
 
         def _gen():
@@ -293,9 +294,6 @@ class MiniImageNetDataset(DatasetBase):
                     raise NotImplementedError()
 
         if output_form == OutputForm.FS:
-            # output_types = (tf.float32, tf.float32)
-            # output_shapes = (tf.TensorShape([_n_way, _n_shot, _w, _h, _c]),
-            #                  tf.TensorShape([_n_way, _n_query, _w, _h, _c]))
             output_types = tf.float32
             output_shapes = tf.TensorShape([_n_way, None, _w, _h, _c])
         elif output_form == OutputForm.FS_SL:
