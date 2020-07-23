@@ -16,7 +16,7 @@ config = {
     "model_type": SelfLearnerWithImgRotation,
     "Model_parameters": {
         "name": f"self-learning_rot-{backbone}_",
-        "hidden_neurons": [640 for _ in range(4)],
+        "hidden_neurons": [640 for _ in range(1)],
         "learning_rate": 1e-3,
         "optimizer_args": {},
         "optimizer": tf.keras.optimizers.Adam,
