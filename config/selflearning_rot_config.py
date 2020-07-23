@@ -15,7 +15,7 @@ config = {
 
     "model_type": SelfLearnerWithImgRotation,
     "Model_parameters": {
-        "name": f"self-learning_rot-{backbone}_",
+        "name": f"self-learning_rot-{backbone}",
         "hidden_neurons": [640 for _ in range(1)],
         "learning_rate": 1e-3,
         "optimizer_args": {},
@@ -26,9 +26,9 @@ config = {
         "verbose": False,
         "save_freq": 1,
         "early_stopping": True,
-        "patience": 50,
+        "patience": 75,
         "learning_rate_decay_enabled": True,
-        "learning_rate_decay_factor": 0.85,
+        "learning_rate_decay_factor": 0.90,
         "learning_rate_decay_freq": 20,
     },
 
