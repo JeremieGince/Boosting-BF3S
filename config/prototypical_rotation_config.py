@@ -23,14 +23,14 @@ config = {
     "Model_parameters": {
         "name": f"prototypical_rot-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_"
-                f"alpha100e-2_Adam1e-3",
+                f"alpha100e-2_Adam1e-2",
         "method": FewShotImgLearner.Method.PrototypicalNet,
         "alpha": 1.00,
         "sl_boosted_type": util.SLBoostedType.ROT,
         "sl_kwargs": {
             "hidden_neurons": [640 for _ in range(1)]
         },
-        "learning_rate": 1e-3,
+        "learning_rate": 1e-2,
         # "optimizer_args": {
         #     "momentum": 0.9,
         #     "decay": 5e-4,
@@ -47,7 +47,7 @@ config = {
         "early_stopping": True,
         "patience": 50,
         "learning_rate_decay_enabled": True,
-        "learning_rate_decay_factor": 0.90,
+        "learning_rate_decay_factor": 0.85,
         "learning_rate_decay_freq": 20,
     },
 
