@@ -35,7 +35,9 @@ class Trainer:
         self.learning_rate = kwargs.get("learning_rate", 1e-3)
         self.optimizer_args = kwargs.get("optimizer_args", {})
         _optim_type = kwargs.get("optimizer", None)
-        self.optimizer = None if _optim_type is None else _optim_type(self.learning_rate, **self.optimizer_args)
+        if _optim_type is not None:
+            self.model.optimizer = _optim_type(self.learning_rate, **self.optimizer_args)
+        # self.optimizer = None if _optim_type is None else _optim_type(self.learning_rate, **self.optimizer_args)
 
         # network callback
         if network_callback_args is None:
@@ -154,10 +156,7 @@ class Trainer:
                     batch_logs = self.modelManager.compute_metrics(_inputs, training=True)  # TODO: ask ModelManager to get metrics dict as logs
 
                 grads = tape.gradient(batch_logs["loss"], self.model.trainable_variables)
-                if self.optimizer is None:
-                    self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-                else:
-                    self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+                self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
             elif phase == util.TrainingPhase.VAL:
                 _inputs = next(_data_itr)
                 batch_logs = self.modelManager.compute_metrics(_inputs, training=False)
@@ -307,10 +306,8 @@ class FewShotTrainer(Trainer):
                     loss, acc = self.model.apply_query(_query)  # TODO: ask ModelManager to get metrics dict as logs
 
                 grads = tape.gradient(loss, self.model.trainable_variables)
-                if self.optimizer is None:
-                    self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-                else:
-                    self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+                self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+
             elif phase == util.TrainingPhase.VAL:
                 _support = next(_data_itr)
                 self.model.set_support(_support)
