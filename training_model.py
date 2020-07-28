@@ -62,6 +62,8 @@ if __name__ == '__main__':
         if opt["Batch_Trainer_parameters"]["n_test"]:
             batch_trainer.test(n=opt["Batch_Trainer_parameters"]["n_test"])
 
+        del batch_trainer
+
     if opt["FewShot_Trainer_parameters"] is not None:
         few_shot_trainer = FewShotTrainer(
             model_manager=network_manager,

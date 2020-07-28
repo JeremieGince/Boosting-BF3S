@@ -197,6 +197,12 @@ def calc_cosine_dists(x, y):
     return tf.reduce_mean(tf.multiply(tf.math.l2_normalize(x, axis=-1), tf.math.l2_normalize(y, axis=-1)), 2)
 
 
+def calc_cosine_similarity(x, y):
+    import tensorflow as tf
+    assert x.shape[-1] == y.shape[-1]
+    return tf.keras.backend.dot(tf.math.l2_normalize(x, axis=-1), tf.math.l2_normalize(tf.transpose(y), axis=-1))
+
+
 class SLBoostedType(enum.Enum):
     ROT = 0
 
@@ -233,3 +239,27 @@ def get_str_repr_for_sec_config(config: dict, sec: str):
     _str += '\n'
     return _str
 
+
+if __name__ == '__main__':
+    import numpy as np
+    import tensorflow as tf
+    query = tf.zeros((90, 1600))
+    proto = tf.zeros((6, 1600))
+
+    x, y = query, proto
+
+    print(f"x.shape, y.shape: {x.shape, y.shape}")
+    n = x.shape[0]
+    m = y.shape[0]
+    x_ = tf.tile(tf.expand_dims(x, 1), [1, m, 1])
+    y_ = tf.tile(tf.expand_dims(y, 0), [n, 1, 1])
+    print(f"x_.shape, y_.shape: {x_.shape, y_.shape}")
+
+    z_ = tf.reduce_mean(tf.math.pow(x_ - y_, 2), 2)
+    print(f"z_.shape: {z_.shape}")
+
+    z = tf.keras.backend.dot(tf.math.l2_normalize(x, axis=-1), tf.math.l2_normalize(tf.transpose(y), axis=-1))
+    print(f"z.shape: {z.shape}")
+
+    _z_ = tf.reduce_mean(tf.multiply(tf.math.l2_normalize(x_, axis=-1), tf.math.l2_normalize(y_, axis=-1)), 2)
+    print(f"_z_.shape: {_z_.shape}")
