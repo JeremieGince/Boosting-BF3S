@@ -25,9 +25,7 @@ config = {
         "method": FewShotImgLearner.Method.PrototypicalNet,
         "alpha": None,
         "sl_kwargs": None,
-        "learning_rate": 1e-3,
-        "optimizer_args": {},
-        "optimizer": tf.keras.optimizers.Adam,
+
     },
 
     "Network_callback_parameters": {
@@ -54,5 +52,10 @@ config = {
         "n_test_episodes": 600,
         "n_epochs": 300,
         "n_test": 10,
+        
+        # optimizer
+        "learning_rate": 1e-3,
+        "optimizer_args": {},
+        "optimizer": tf.keras.optimizers.Adam,
     }
 }
