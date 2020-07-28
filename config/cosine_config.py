@@ -20,7 +20,8 @@ config = {
     "model_type": FewShotImgLearner,
     "Model_parameters": {
         "name": f"cosine_classifier-{backbone}_"
-                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot",
+                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
+                f"_1",
         "method": FewShotImgLearner.Method.CosineNet,
         "alpha": None,
         "sl_kwargs": None,
@@ -33,8 +34,8 @@ config = {
         "early_stopping": True,
         "patience": batch_epochs+50,
         "learning_rate_decay_enabled": True,
-        "learning_rate_decay_factor": 0.85,
-        "learning_rate_decay_freq": 20,
+        "learning_rate_decay_factor": 0.90,
+        "learning_rate_decay_freq": 30,
     },
 
     "Batch_Trainer_parameters": {

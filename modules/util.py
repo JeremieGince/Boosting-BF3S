@@ -169,6 +169,7 @@ def calc_euclidian_dists(x, y):
     import tensorflow as tf
     """
     Calculate euclidian distance between two 3D tensors.
+    Reference: https://github.com/schatty/prototypical-networks-tf/blob/master/prototf/models/prototypical.py
     Args:
         x (tf.Tensor):
         y (tf.Tensor):
@@ -179,22 +180,6 @@ def calc_euclidian_dists(x, y):
     x = tf.tile(tf.expand_dims(x, 1), [1, m, 1])
     y = tf.tile(tf.expand_dims(y, 0), [n, 1, 1])
     return tf.reduce_mean(tf.math.pow(x - y, 2), 2)
-
-
-def calc_cosine_dists(x, y):
-    import tensorflow as tf
-    """
-    Calculate cosine distance between two 3D tensors.
-    Args:
-        x (tf.Tensor):
-        y (tf.Tensor):
-    Returns (tf.Tensor): 2-dim tensor with distances.
-    """
-    n = x.shape[0]
-    m = y.shape[0]
-    x = tf.tile(tf.expand_dims(x, 1), [1, m, 1])
-    y = tf.tile(tf.expand_dims(y, 0), [n, 1, 1])
-    return tf.reduce_mean(tf.multiply(tf.math.l2_normalize(x, axis=-1), tf.math.l2_normalize(y, axis=-1)), 2)
 
 
 def calc_cosine_similarity(x, y):
