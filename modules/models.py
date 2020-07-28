@@ -314,10 +314,10 @@ class CosineClassifier(FewShot):
                                                    self.w, self.h, self.c]))
 
         # Calculate distances between query and prototypes
-        dists = util.calc_cosine_dists(z_query, self.z_prototypes)
+        similarity = util.calc_cosine_dists(z_query, self.z_prototypes)
 
         # log softmax of calculated distances
-        log_p_y = tf.nn.log_softmax(- self.scale_cls * dists, axis=-1)
+        log_p_y = tf.nn.log_softmax(self.scale_cls * similarity, axis=-1)
         log_p_y = tf.reshape(log_p_y, [self.n_class, n_query, -1])
 
         loss_few = -tf.reduce_mean(
