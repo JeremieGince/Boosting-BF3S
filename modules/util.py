@@ -169,6 +169,7 @@ def calc_euclidian_dists(x, y):
     import tensorflow as tf
     """
     Calculate euclidian distance between two 3D tensors.
+    Reference: https://github.com/schatty/prototypical-networks-tf/blob/master/prototf/models/prototypical.py
     Args:
         x (tf.Tensor):
         y (tf.Tensor):
