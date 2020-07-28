@@ -1,13 +1,13 @@
 import tensorflow as tf
 from modules.modelManagers import FewShotImgLearner
 
-way = 30
+way = 6
 t_way = 5
 shot = 5
 t_shot = 5
 backbone = "conv-4-64"
 
-batch_epochs = 00
+batch_epochs = 000
 
 config = {
     "Tensorflow_constants": {
