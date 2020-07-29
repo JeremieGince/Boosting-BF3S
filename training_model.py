@@ -36,6 +36,8 @@ if __name__ == '__main__':
     opt["Dataset_parameters"]["data_dir"] = data_dir
     opt["Model_parameters"]["name"] = opt["Model_parameters"]["name"]+f"{'_c' if cerebus else ''}"
 
+    util.save_opt(opt)
+
     tf.random.set_seed(opt["Tensorflow_constants"]["seed"])
     np.random.seed(opt["Tensorflow_constants"]["seed"])
 
