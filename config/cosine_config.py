@@ -21,7 +21,7 @@ config = {
     "Model_parameters": {
         "name": f"cosine_classifier-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
-                f"_1",
+                f"_2",
         "method": FewShotImgLearner.Method.CosineNet,
         "alpha": None,
         "sl_kwargs": None,
@@ -32,7 +32,7 @@ config = {
         "verbose": False,
         "save_freq": 1,
         "early_stopping": True,
-        "patience": batch_epochs+50,
+        "patience": batch_epochs+70,
         "learning_rate_decay_enabled": True,
         "learning_rate_decay_factor": 0.90,
         "learning_rate_decay_freq": 30,
@@ -46,14 +46,14 @@ config = {
 
         # optimizer
         "learning_rate": 1e-3,
-        # "optimizer_args": {
-        #     "momentum": 0.9,
-        #     "decay": 5e-4,
-        #     "nesterov": True,
-        # },
-        # "optimizer": tf.keras.optimizers.SGD,
-        "optimizer_args": {},
-        "optimizer": tf.keras.optimizers.Adam,
+        "optimizer_args": {
+            "momentum": 0.9,
+            "decay": 5e-4,
+            "nesterov": True,
+        },
+        "optimizer": tf.keras.optimizers.SGD,
+        # "optimizer_args": {},
+        # "optimizer": tf.keras.optimizers.Adam,
     },
 
     "FewShot_Trainer_parameters": {
