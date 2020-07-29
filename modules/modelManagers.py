@@ -138,7 +138,7 @@ class NetworkModelManager:
         self.model = self.build()
         self.model = self.compile()
 
-        if len(os.listdir(self.checkpoint_dir)) == 0:
+        if not os.path.exists(self.checkpoint_path):
             self.save_weights()
         return self.model
 
