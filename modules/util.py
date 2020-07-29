@@ -225,6 +225,14 @@ def get_str_repr_for_sec_config(config: dict, sec: str):
     return _str
 
 
+def save_opt(opt):
+    import os
+    import json
+    path = f"training_data/{opt['Model_parameters']['name']}"
+    os.makedirs(path, exist_ok=True)
+    json.dump(opt, open(path+"/opt.json", "w"), skipkeys=True, indent=3, default=str)
+
+
 if __name__ == '__main__':
     import numpy as np
     import tensorflow as tf
