@@ -21,7 +21,7 @@ config = {
     "Model_parameters": {
         "name": f"cosine_classifier-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
-                f"_4",
+                f"_5",
         "method": FewShotImgLearner.Method.CosineNet,
         "alpha": None,
         "sl_kwargs": None,
