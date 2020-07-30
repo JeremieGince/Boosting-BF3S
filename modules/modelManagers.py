@@ -79,7 +79,7 @@ class NetworkModelManager:
     def save_history(self):
         import json
 
-        json.dump(self.history, open(self.history_path, 'w'))
+        json.dump(self.history, open(self.history_path, 'w'), indent=3)
 
     def update_curr_epoch(self):
         self.current_epoch = len(self.history.get("train", {}).get("loss", []))
