@@ -252,6 +252,7 @@ class CosineClassifier(FewShot):
         cls_similarity = tf.keras.backend.dot(x_feats_normalized, tf.transpose(self.weight_base))
 
         log_p_y = tf.nn.log_softmax(self.scale_cls * cls_similarity, axis=-1)
+        # log_p_y = tf.reshape(log_p_y, [self.n_class, n_query, -1])
 
         loss_few = -tf.reduce_mean(
             tf.reshape(
