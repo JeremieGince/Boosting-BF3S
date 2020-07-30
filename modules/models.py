@@ -250,26 +250,36 @@ class CosineClassifier(FewShot):
 
         # similarity [n_exp, n_cls] = x_feats_norm [n_exp, n_feats] \dot w_norm.T [n_feats, n_cls]
         cls_similarity = tf.keras.backend.dot(x_feats_normalized, tf.transpose(self.weight_base))
-
+        # print(f"cls_similarity.shape: {cls_similarity.shape}")
         log_p_y = tf.nn.log_softmax(self.scale_cls * cls_similarity, axis=-1)
+        # print(f"log_p_y.shape: {log_p_y.shape}")
         # log_p_y = tf.reshape(log_p_y, [self.n_class, n_query, -1])
+        # print(f"log_p_y.shape: {log_p_y.shape}")
+        # print(y_batch)
+        # print(log_p_y)
+        # print(log_p_y[0], tf.reduce_sum(log_p_y[0]))
+        # p_y = tf.nn.softmax(self.scale_cls * cls_similarity, axis=-1)
+        # loss_few = tf.losses.categorical_crossentropy(tf.cast(y_batch, tf.float32), tf.cast(p_y, tf.float32))
 
         loss_few = -tf.reduce_mean(
-            tf.reshape(
-                tf.reduce_sum(
-                    tf.multiply(
-                        tf.cast(y_batch, tf.float32), tf.cast(log_p_y, tf.float32)
-                    ), axis=-1
-                ), [-1]
+            tf.reduce_sum(
+                tf.multiply(
+                    tf.cast(y_batch, tf.float32), tf.cast(log_p_y, tf.float32)
+                ), axis=-1
             )
         )
+        # print(loss_few)
+
         eq = tf.cast(
             tf.equal(
                 tf.cast(tf.argmax(log_p_y, axis=-1), tf.int32),
-                tf.cast(ids_batch, tf.int32)
+                tf.cast(tf.argmax(y_batch, axis=-1), tf.int32)
             ), tf.float32
         )
         acc_few = tf.reduce_mean(eq)
+        # print(eq)
+        # print(acc_few)
+        # assert 1 == 0
 
         if self.sl_model is None:
             return loss_few, acc_few
@@ -316,10 +326,13 @@ class CosineClassifier(FewShot):
 
         # Calculate distances between query and prototypes
         similarity = util.calc_cosine_similarity(z_query, self.z_prototypes)
+        # print(f"similarity.shape: {similarity.shape}")
 
         # log softmax of calculated distances
         log_p_y = tf.nn.log_softmax(self.scale_cls * similarity, axis=-1)
+        # print(f"log_p_y.shape: {log_p_y.shape}")
         log_p_y = tf.reshape(log_p_y, [self.n_class, n_query, -1])
+        # print(f"log_p_y_reshape.shape: {log_p_y.shape}")
 
         loss_few = -tf.reduce_mean(
             tf.reshape(
