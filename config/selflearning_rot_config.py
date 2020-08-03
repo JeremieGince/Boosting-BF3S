@@ -38,7 +38,7 @@ config = {
         "n_train_batch": 100,
         "n_val_batch": 100,
         "n_epochs": 300,
-        "n_test": 10,
+        "n_test": 100,
     },
 
     "FewShot_Trainer_parameters": None
