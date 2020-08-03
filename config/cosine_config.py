@@ -21,7 +21,7 @@ config = {
     "Model_parameters": {
         "name": f"cosine_classifier-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
-                f"_7",
+                f"_8",
         "method": FewShotImgLearner.Method.CosineNet,
         "alpha": None,
         "sl_kwargs": None,
@@ -41,7 +41,7 @@ config = {
 
     "Batch_Trainer_parameters": {
         "n_train_batch": 100,
-        "n_val_batch": 100,
+        "n_val_batch": 00,
         "n_epochs": batch_epochs,
         "n_test": 0,
 
@@ -65,7 +65,7 @@ config = {
         "n_query": 15,
         "n_test_query": 5,
         "n_train_episodes": 100,
-        "n_val_episodes": 00,
+        "n_val_episodes": 100,
         "n_test_episodes": 600,
         "n_epochs": batch_epochs + 300,
         "n_test": 10,
