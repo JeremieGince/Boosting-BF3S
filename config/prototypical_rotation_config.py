@@ -24,7 +24,7 @@ config = {
     "Model_parameters": {
         "name": f"prototypical_rot-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_"
-                f"alpha010e-2_Adam1e-2",
+                f"alpha010e-2_Adam1e-3",
         "method": FewShotImgLearner.Method.PrototypicalNet,
         "alpha": 0.10,
         "sl_boosted_type": util.SLBoostedType.ROT,
