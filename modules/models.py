@@ -106,13 +106,17 @@ class Prototypical(FewShot):
             self.sl_support_loss, _ = self.sl_model.call(support)
 
     def apply_query(self, _query):
+        n_query = _query.shape[1]
         loss_few, acc_few = self.apply_query_proto(_query)
 
         if self.sl_model is None:
             return loss_few, acc_few
         else:
             self.sl_query_loss, _ = self.sl_model.call(_query)
-            sl_loss = tf.reduce_mean(tf.concat([self.sl_support_loss, self.sl_query_loss], axis=0))
+            if len(self.sl_query_loss.shape) == 0:
+                sl_loss = (self.sl_support_loss * self.n_support + self.sl_query_loss * n_query) / (self.n_support + n_query)
+            else:
+                sl_loss = tf.reduce_mean(tf.concat([self.sl_support_loss, self.sl_query_loss], axis=0))
             return loss_few + self.alpha * sl_loss, acc_few
 
     def apply_query_proto(self, query):
