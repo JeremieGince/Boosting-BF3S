@@ -224,7 +224,7 @@ class CosineClassifier(FewShot):
             **kwargs
         )
 
-        self.n_cls_base = kwargs.get("n_cls_base", 1)
+        self.n_cls_base = kwargs.get("n_cls_base", 64)
         self.nFeat = self.backbone.output_shape[-1]
 
         self.n_class = None
@@ -235,6 +235,9 @@ class CosineClassifier(FewShot):
             dtype=tf.float32,
             trainable=True
         )
+
+        self.n_cls_val = kwargs.get("n_cls_val", 16)
+        self.weight_val = lambda: tf.ones((self.n_cls_val, self.nFeat)) * tf.reduce_mean(self.weight_base)
         # self.bias = tf.Variable(0.0, trainable=True)
         self.scale_cls = tf.Variable(10.0, trainable=True)
 
@@ -244,22 +247,14 @@ class CosineClassifier(FewShot):
         x_batch, ids_batch, y_batch = inputs
         x_feats = self.backbone(x_batch)  # shape: [n_exp, n_feats]
 
+        weights = self.weight_base if training else self.weight_val()
         # normalization
         x_feats_normalized = tf.math.l2_normalize(x_feats, axis=-1)
-        self.weight_base = tf.math.l2_normalize(self.weight_base, axis=-1)
+        weights = tf.math.l2_normalize(weights, axis=-1)
 
         # similarity [n_exp, n_cls] = x_feats_norm [n_exp, n_feats] \dot w_norm.T [n_feats, n_cls]
-        cls_similarity = tf.keras.backend.dot(x_feats_normalized, tf.transpose(self.weight_base))
-        # print(f"cls_similarity.shape: {cls_similarity.shape}")
+        cls_similarity = tf.keras.backend.dot(x_feats_normalized, tf.transpose(weights))
         log_p_y = tf.nn.log_softmax(self.scale_cls * cls_similarity, axis=-1)
-        # print(f"log_p_y.shape: {log_p_y.shape}")
-        # log_p_y = tf.reshape(log_p_y, [self.n_class, n_query, -1])
-        # print(f"log_p_y.shape: {log_p_y.shape}")
-        # print(y_batch)
-        # print(log_p_y)
-        # print(log_p_y[0], tf.reduce_sum(log_p_y[0]))
-        # p_y = tf.nn.softmax(self.scale_cls * cls_similarity, axis=-1)
-        # loss_few = tf.losses.categorical_crossentropy(tf.cast(y_batch, tf.float32), tf.cast(p_y, tf.float32))
 
         loss_few = -tf.reduce_mean(
             tf.reduce_sum(
@@ -378,28 +373,49 @@ class SLRotationModel(tf.keras.Model):
         self.backbone = backbone
         self._sl_input_shape = backbone.output_shape[1:]
         self._sl_output_size = len(self.possible_k)
-        self._nb_hidden_layer: int = kwargs.get("nb_hidden_layers", 1)
-        self._hidden_neurons: list = kwargs.get("hidden_neurons", [4096 for _ in range(self._nb_hidden_layer)])
-        self._nb_hidden_layer = len(self._hidden_neurons)
+        self._classifier_type = kwargs.get("classifier_type", "cosine")
 
-        self.sl_classifier_layers = [
-            Flatten(),
-            ReLU(),
-            *[
-                Sequential([
-                    Dense(h),
-                    BatchNormalization(),
-                    ReLU(),
-                ], name=f"Dense_Block_{i}")
-                for i, h in enumerate(self._hidden_neurons)
-            ],
-            Dense(self._sl_output_size, name="sl_rot_output_layer"),
-            Softmax(dtype=tf.float32),
-        ]
+        if self._classifier_type.lower() == "dense":
+            self._nb_hidden_layer: int = kwargs.get("nb_hidden_layers", 1)
+            self._hidden_neurons: list = kwargs.get("hidden_neurons", [4096 for _ in range(self._nb_hidden_layer)])
+            self._nb_hidden_layer = len(self._hidden_neurons)
 
-        self._cls_input = Input(shape=self._sl_input_shape)
-        self._seq = Sequential(self.sl_classifier_layers)
-        self._cls = tf.keras.Model(inputs=self._cls_input, outputs=self._seq(self._cls_input))
+            self.sl_classifier_layers = [
+                Flatten(),
+                ReLU(),
+                *[
+                    Sequential([
+                        Dense(h),
+                        BatchNormalization(),
+                        ReLU(),
+                    ], name=f"Dense_Block_{i}")
+                    for i, h in enumerate(self._hidden_neurons)
+                ],
+                Dense(self._sl_output_size, name="sl_rot_output_layer"),
+                Softmax(dtype=tf.float32),
+            ]
+
+            self._cls_input = Input(shape=self._sl_input_shape)
+            self._seq = Sequential(self.sl_classifier_layers)
+            self._cls = tf.keras.Model(inputs=self._cls_input, outputs=self._seq(self._cls_input))
+        elif self._classifier_type.lower() == "cosine":
+            self.nFeat = self.backbone.output_shape[-1]
+
+            self._weights = tf.Variable(
+                np.random.normal(0.0, np.sqrt(2.0 / self.nFeat), size=(self._sl_output_size, self.nFeat)),
+                dtype=tf.float32,
+                trainable=True
+            )
+            self.scale_cls = tf.Variable(10.0, trainable=True)
+
+            self._cls = lambda feats: tf.nn.log_softmax(
+                self.scale_cls * tf.keras.backend.dot(
+                    tf.math.l2_normalize(feats, axis=-1),
+                    tf.transpose(tf.math.l2_normalize(self._weights, axis=-1))
+                ),
+                axis=-1)
+        else:
+            raise ValueError(f"{self._classifier_type} is not a recognizable classifier type")
 
     def call(self, inputs, training=None, mask=None):
         _in, *_ = inputs
