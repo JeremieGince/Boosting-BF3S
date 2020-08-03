@@ -28,9 +28,9 @@ config = {
         "verbose": False,
         "save_freq": 1,
         "early_stopping": True,
-        "patience": 75,
+        "patience": 50,
         "learning_rate_decay_enabled": True,
-        "learning_rate_decay_factor": 0.90,
+        "learning_rate_decay_factor": 0.85,
         "learning_rate_decay_freq": 20,
     },
 
