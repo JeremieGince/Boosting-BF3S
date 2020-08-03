@@ -16,6 +16,7 @@ config = {
     "model_type": SelfLearnerWithImgRotation,
     "Model_parameters": {
         "name": f"self-learning_rot-{backbone}",
+        "classifier_type": "cosine",
         "hidden_neurons": [640 for _ in range(1)],
         "learning_rate": 1e-3,
         "optimizer_args": {},
