@@ -8,6 +8,7 @@ t_way = 5
 shot = 5
 t_shot = 5
 backbone = "conv-4-64"
+sl_classifier_type = "cosine"
 
 
 config = {
@@ -28,7 +29,8 @@ config = {
         "alpha": 0.10,
         "sl_boosted_type": util.SLBoostedType.ROT,
         "sl_kwargs": {
-            "hidden_neurons": [640 for _ in range(1)]
+            "hidden_neurons": [640 for _ in range(1)] if sl_classifier_type == "dense" else None,
+            "classifier_type": sl_classifier_type,
         },
         "learning_rate": 1e-3,
         # "optimizer_args": {
