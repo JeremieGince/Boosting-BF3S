@@ -2,6 +2,7 @@ import tensorflow as tf
 from modules.modelManagers import SelfLearnerWithImgRotation
 
 backbone = "conv-4-64"
+classifier_type = "cosine"
 
 
 config = {
@@ -15,9 +16,9 @@ config = {
 
     "model_type": SelfLearnerWithImgRotation,
     "Model_parameters": {
-        "name": f"self-learning_rot-{backbone}",
-        "classifier_type": "cosine",
-        "hidden_neurons": [640 for _ in range(1)],
+        "name": f"self-learning_rot-{backbone}-{classifier_type}",
+        "classifier_type": classifier_type,
+        "hidden_neurons": [640 for _ in range(1)] if classifier_type == "dense" else None,
         "learning_rate": 1e-3,
         "optimizer_args": {},
         "optimizer": tf.keras.optimizers.Adam,

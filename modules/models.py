@@ -398,6 +398,9 @@ class SLRotationModel(tf.keras.Model):
             self._cls_input = Input(shape=self._sl_input_shape)
             self._seq = Sequential(self.sl_classifier_layers)
             self._cls = tf.keras.Model(inputs=self._cls_input, outputs=self._seq(self._cls_input))
+
+            self.loss_fn = lambda y, y_pred: categorical_crossentropy(y, y_pred)
+
         elif self._classifier_type.lower() == "cosine":
             self.nFeat = self.backbone.output_shape[-1]
 
@@ -414,6 +417,14 @@ class SLRotationModel(tf.keras.Model):
                     tf.transpose(tf.math.l2_normalize(self._weights, axis=-1))
                 ),
                 axis=-1)
+
+            self.loss_fn = lambda y, y_pred: -tf.reduce_mean(
+                tf.reduce_sum(
+                    tf.multiply(
+                        tf.cast(y, tf.float32), tf.cast(y_pred, tf.float32)
+                    ), axis=-1
+                )
+            )
         else:
             raise ValueError(f"{self._classifier_type} is not a recognizable classifier type")
 
@@ -423,7 +434,7 @@ class SLRotationModel(tf.keras.Model):
 
         sl_y_pred = self._cls(self.backbone(sl_x))
 
-        loss = categorical_crossentropy(sl_y, sl_y_pred)
+        loss = self.loss_fn(sl_y, sl_y_pred)
 
         sl_eq = tf.cast(
             tf.equal(
