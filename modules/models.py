@@ -407,9 +407,10 @@ class SLRotationModel(tf.keras.Model):
             self._weights = tf.Variable(
                 np.random.normal(0.0, np.sqrt(2.0 / self.nFeat), size=(self._sl_output_size, self.nFeat)),
                 dtype=tf.float32,
-                trainable=True
+                trainable=True,
+                name="sl_rot_weights"
             )
-            self.scale_cls = tf.Variable(10.0, trainable=True)
+            self.scale_cls = tf.Variable(10.0, trainable=True, name="sl_rot_scale_cls")
 
             self._cls = lambda feats: tf.nn.log_softmax(
                 self.scale_cls * tf.keras.backend.dot(
