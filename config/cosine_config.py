@@ -21,26 +21,27 @@ config = {
     "Model_parameters": {
         "name": f"cosine_classifier-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
-                f"_6",
+                f"_7",
         "method": FewShotImgLearner.Method.CosineNet,
         "alpha": None,
         "sl_kwargs": None,
         "n_cls_base": 64,
+        "n_cls_val": 16,
     },
 
     "Network_callback_parameters": {
         "verbose": False,
         "save_freq": 1,
         "early_stopping": True,
-        "patience": batch_epochs+70,
-        "learning_rate_decay_enabled": True,
+        "patience": 50,
+        "learning_rate_decay_enabled": False,
         "learning_rate_decay_factor": 0.85,
         "learning_rate_decay_freq": 20,
     },
 
     "Batch_Trainer_parameters": {
         "n_train_batch": 100,
-        "n_val_batch": 0,
+        "n_val_batch": 100,
         "n_epochs": batch_epochs,
         "n_test": 0,
 
@@ -64,7 +65,7 @@ config = {
         "n_query": 15,
         "n_test_query": 5,
         "n_train_episodes": 100,
-        "n_val_episodes": 100,
+        "n_val_episodes": 00,
         "n_test_episodes": 600,
         "n_epochs": batch_epochs + 300,
         "n_test": 10,
