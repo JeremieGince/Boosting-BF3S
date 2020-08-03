@@ -66,6 +66,6 @@ config = {
         "n_val_episodes": 100,
         "n_test_episodes": 600,
         "n_epochs": 300,
-        "n_test": 10,
+        "n_test": 100,
     }
 }
