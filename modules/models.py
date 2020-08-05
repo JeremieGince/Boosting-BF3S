@@ -252,12 +252,9 @@ class CosineClassifier(FewShot):
         x_feats = self.backbone(x_batch)  # shape: [n_exp, n_feats]
 
         weights = self.weight_base if training else self.weight_val()
-        # normalization
-        x_feats_normalized = tf.math.l2_normalize(x_feats, axis=-1)
-        weights = tf.math.l2_normalize(weights, axis=-1)
 
         # similarity [n_exp, n_cls] = x_feats_norm [n_exp, n_feats] \dot w_norm.T [n_feats, n_cls]
-        cls_similarity = tf.keras.backend.dot(x_feats_normalized, tf.transpose(weights))
+        cls_similarity = util.calc_cosine_similarity(x_feats, weights)
         log_p_y = tf.nn.log_softmax(self.scale_cls * cls_similarity, axis=-1)
 
         loss_few = -tf.reduce_mean(
@@ -479,6 +476,22 @@ class SLDistFeatModel(tf.keras.Model):
         self._sl_output_size = len(self.possible_k)
         self._feat_dist = kwargs.get("feat_dist_mth", "cosine")
 
+        if self._feat_dist == "cosine":
+            self.loss_fn = lambda x_list: -1.0 * util.calc_cosine_similarity(*x_list)
+        elif self._feat_dist == "l2":
+            self.loss_fn = lambda p_list: tf.losses.mse(*p_list)
+        elif self._feat_dist == "KLD":
+            self.T = kwargs.get("T", 4.0)
+            self.loss_fn = lambda p_list: tf.losses.kullback_leibler_divergence(*[tf.nn.softmax(p / self.T)
+                                                                                  for p in p_list])
+        elif self._feat_dist == "KLD_l2":
+            self.beta = kwargs.get("beta", 4.0)
+            self.T = kwargs.get("T", 4.0)
+            self.loss_fn = lambda p_list: tf.losses.kld(*[tf.nn.softmax(p / self.T) for p in p_list]) \
+                                          + self.beta * tf.losses.mse(*p_list)
+        else:
+            raise ValueError(f"feat_dist_mth ({self._feat_dist}) is not a recognizable dist")
+
     def call(self, inputs, training=None, mask=None):
         _in, *_ = inputs
         x = self._get_sl_set_args(_in)
@@ -498,16 +511,23 @@ class SLDistFeatModel(tf.keras.Model):
 
         # return loss, acc
         x_feats = self.backbone(x)
-        print(f"x.shape: {x.shape}")
-        print(f"x_feats.shape: {x_feats.shape}")
-        assert 1 == 0
+        # print(f"_in.shape: {_in.shape}")
+        # print(f"x.shape: {x.shape}")
+        # print(f"x_feats.shape: {x_feats.shape}")
+        x_feats_k = tf.split(x_feats, self.nb_k, axis=0)
+        # print(f"x_feats_k.shape: {[t.shape for t in x_feats_k]}")
+        print(*x_feats_k, sep='\n')
+        loss = self.loss_fn(x_feats_k)
+        # print(f"loss.shape: {loss.shape}, \n {loss}")
+        # assert 1 == 0
+        return loss, -1.0
 
     def _get_sl_set_args(self, _set):
         *_batch_dim, _w, _h, _c = _set.shape
 
         _set_reshape = tf.reshape(_set, shape=[np.prod(_batch_dim), _w, _h, _c])
-
+        self._in_shape_0 = _set_reshape.shape[0]
         for k in self.possible_k[1:]:
-            _set_reshape = tf.concat([_set_reshape, tf.image.rot90(_set_reshape, k)])
+            _set_reshape = tf.concat([_set_reshape, tf.image.rot90(_set_reshape, k)], axis=0)
 
         return _set_reshape
