@@ -220,21 +220,17 @@ class SelfLearnerWithImgRotation(NetworkModelManager):
             }
         )
         self._backbone_kwargs = kwargs.get("backbone_kwargs", {})
+        self.sl_type = kwargs.get("sl_type", util.SLBoostedType.ROT)
         self._kwargs = kwargs
-        # self._nb_hidden_layer: int = kwargs.get("nb_hidden_layers", 1)
-        # self._hidden_neurons: list = kwargs.get("hidden_neurons", [4096 for _ in range(self._nb_hidden_layer)])
-        # self._nb_hidden_layer = len(self._hidden_neurons)
 
     def build(self):
-        self.model = SLRotationModel(
+        self.model = get_sl_model(
             backbone=self.available_backbones.get(self._backbone)(
                 **self._backbone_args, **self._backbone_kwargs
             ),
-            # nb_hidden_layers=self._nb_hidden_layer,
-            # hidden_neurons=self._hidden_neurons,
+            sl_boosted_type=self.sl_type,
             **self._kwargs
         )
-
         return self.model
 
 
