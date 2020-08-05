@@ -3,7 +3,7 @@ from modules.modelManagers import SelfLearnerWithImgRotation
 from modules.util import SLBoostedType
 
 backbone = "conv-4-64"
-feat_dist_mth = "cosine"
+feat_dist_mth = "l2"
 
 
 config = {
@@ -17,9 +17,10 @@ config = {
 
     "model_type": SelfLearnerWithImgRotation,
     "Model_parameters": {
-        "name": f"self-learning_rot-{backbone}-{feat_dist_mth}",
+        "name": f"self-learning_rotFeat-{backbone}-{feat_dist_mth}",
         "sl_type": SLBoostedType.ROT_FEAT,
         "feat_dist_mth": feat_dist_mth,
+        "nb_k": 2,
         "learning_rate": 1e-3,
         "optimizer_args": {},
         "optimizer": tf.keras.optimizers.Adam,
