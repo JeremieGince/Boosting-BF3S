@@ -7,6 +7,7 @@ from config.prototypical_rotation_config import config as proto_rot_config
 from config.cosine_config import config as cosine_config
 from config.cosine_rotation_config import config as cosine_rot_config
 from config.selflearning_rot_config import config as sl_rot_config
+from config.selflearning_rotFeat_config import config as sl_rot_feat_config
 
 import tensorflow as tf
 import numpy as np
@@ -16,6 +17,7 @@ import sys
 if __name__ == '__main__':
     _mth_to_config = {
         "sl_rot": sl_rot_config,
+        "sl_rotFeat": sl_rot_feat_config,
         "proto": proto_config,
         "proto_rot": proto_rot_config,
         "cosine": cosine_config,
@@ -29,7 +31,7 @@ if __name__ == '__main__':
         cerebus = True
     else:
         data_dir = r"D:\Datasets\mini-imagenet"
-        _mth = "proto"
+        _mth = "cosine"
     assert _mth in _mth_to_config, f"Method {_mth} is not recognized"
 
     opt = _mth_to_config[_mth]
