@@ -185,7 +185,8 @@ def calc_euclidian_dists(x, y):
 def calc_cosine_similarity(x, y):
     import tensorflow as tf
     assert x.shape[-1] == y.shape[-1]
-    return tf.keras.backend.dot(tf.math.l2_normalize(x, axis=-1), tf.math.l2_normalize(tf.transpose(y), axis=-1))
+    _x, _y = tf.math.l2_normalize(x, axis=-1), tf.math.l2_normalize(y, axis=-1)
+    return tf.keras.backend.dot(_x, tf.transpose(_y))
 
 
 class SLBoostedType(enum.Enum):
