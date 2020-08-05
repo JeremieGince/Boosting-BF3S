@@ -190,6 +190,7 @@ def calc_cosine_similarity(x, y):
 
 class SLBoostedType(enum.Enum):
     ROT = 0
+    ROT_FEAT = 1
 
 
 def get_str_repr_for_config(config: dict):
