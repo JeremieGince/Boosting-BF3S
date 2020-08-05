@@ -24,7 +24,7 @@ config = {
     "Model_parameters": {
         "name": f"prototypical_rot-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_"
-                f"alpha100e-2_Adam1e-3",
+                f"alpha100e-2_Adam5e-3",
         "method": FewShotImgLearner.Method.PrototypicalNet,
         "alpha": 1.00,
         "sl_boosted_type": util.SLBoostedType.ROT,
@@ -32,7 +32,7 @@ config = {
             "hidden_neurons": [640 for _ in range(1)] if sl_classifier_type == "dense" else None,
             "classifier_type": sl_classifier_type,
         },
-        "learning_rate": 1e-3,
+        "learning_rate": 5e-3,
         # "optimizer_args": {
         #     "momentum": 0.9,
         #     "decay": 5e-4,
@@ -64,8 +64,8 @@ config = {
         "n_test_query": 5,
         "n_train_episodes": 100,
         "n_val_episodes": 100,
-        "n_test_episodes": 600,
+        "n_test_episodes": 1,
         "n_epochs": 300,
-        "n_test": 100,
+        "n_test": 600,
     }
 }
