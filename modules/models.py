@@ -357,7 +357,8 @@ class CosineClassifier(FewShot):
 
 def get_sl_model(backbone, sl_boosted_type: util.SLBoostedType, **kwargs):
     sl_type_to_cls = {
-        util.SLBoostedType.ROT: SLRotationModel
+        util.SLBoostedType.ROT: SLRotationModel,
+        util.SLBoostedType.ROT_FEAT: SLDistFeatModel,
     }
 
     return sl_type_to_cls.get(sl_boosted_type)(backbone, **kwargs) if sl_boosted_type is not None else None
@@ -465,3 +466,48 @@ class SLRotationModel(tf.keras.Model):
 
         return sl_x, sl_y
 
+
+class SLDistFeatModel(tf.keras.Model):
+    def __init__(self, backbone, **kwargs):
+        super(SLDistFeatModel, self).__init__()
+
+        self.nb_k = min([kwargs.get("nb_k", 4), 4])
+        self.possible_k = range(self.nb_k)
+
+        self.backbone = backbone
+        self._sl_input_shape = backbone.output_shape[1:]
+        self._sl_output_size = len(self.possible_k)
+        self._feat_dist = kwargs.get("feat_dist_mth", "cosine")
+
+    def call(self, inputs, training=None, mask=None):
+        _in, *_ = inputs
+        x = self._get_sl_set_args(_in)
+
+        # y_pred = self._cls(self.backbone(x))
+        #
+        # loss = self.loss_fn(y, y_pred)
+        #
+        # sl_eq = tf.cast(
+        #     tf.equal(
+        #         tf.cast(tf.argmax(y_pred, axis=-1), tf.int32),
+        #         tf.cast(tf.argmax(y, axis=-1), tf.int32)
+        #     ), tf.float32
+        # )
+        #
+        # acc = tf.reduce_mean(sl_eq)
+
+        # return loss, acc
+        x_feats = self.backbone(x)
+        print(f"x.shape: {x.shape}")
+        print(f"x_feats.shape: {x_feats.shape}")
+        assert 1 == 0
+
+    def _get_sl_set_args(self, _set):
+        *_batch_dim, _w, _h, _c = _set.shape
+
+        _set_reshape = tf.reshape(_set, shape=[np.prod(_batch_dim), _w, _h, _c])
+
+        for k in self.possible_k[1:]:
+            _set_reshape = tf.concat([_set_reshape, tf.image.rot90(_set_reshape, k)])
+
+        return _set_reshape
