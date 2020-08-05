@@ -72,7 +72,7 @@ config = {
         "n_test": 10,
 
         # optimizer
-        # "learning_rate": 1e-3,
+        "learning_rate": 1e-3,
         # "optimizer_args": {
         #     "momentum": 0.9,
         #     "decay": 5e-4,
