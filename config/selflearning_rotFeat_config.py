@@ -3,7 +3,7 @@ from modules.modelManagers import SelfLearnerWithImgRotation
 from modules.util import SLBoostedType
 
 backbone = "conv-4-64"
-classifier_type = "cosine"
+feat_dist_mth = "cosine"
 
 
 config = {
@@ -17,10 +17,9 @@ config = {
 
     "model_type": SelfLearnerWithImgRotation,
     "Model_parameters": {
-        "name": f"self-learning_rot-{backbone}-{classifier_type}",
-        "sl_type": SLBoostedType.ROT,
-        "classifier_type": classifier_type,
-        "hidden_neurons": [640 for _ in range(1)] if classifier_type == "dense" else None,
+        "name": f"self-learning_rot-{backbone}-{feat_dist_mth}",
+        "sl_type": SLBoostedType.ROT_FEAT,
+        "feat_dist_mth": feat_dist_mth,
         "learning_rate": 1e-3,
         "optimizer_args": {},
         "optimizer": tf.keras.optimizers.Adam,
