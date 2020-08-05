@@ -415,10 +415,7 @@ class SLRotationModel(tf.keras.Model):
             self.scale_cls = tf.Variable(10.0, trainable=True, name="sl_rot_scale_cls")
 
             self._cls = lambda feats: tf.nn.log_softmax(
-                self.scale_cls * tf.keras.backend.dot(
-                    tf.math.l2_normalize(feats, axis=-1),
-                    tf.transpose(tf.math.l2_normalize(self._weights, axis=-1))
-                ),
+                self.scale_cls * util.calc_cosine_similarity(feats, self._weights),
                 axis=-1)
 
             self.loss_fn = lambda y, y_pred: -tf.reduce_mean(
