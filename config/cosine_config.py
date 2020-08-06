@@ -7,7 +7,7 @@ shot = 5
 t_shot = 5
 backbone = "conv-4-64"
 
-batch_epochs = 300
+batch_epochs = 100
 
 config = {
     "Tensorflow_constants": {
@@ -34,7 +34,7 @@ config = {
         "verbose": False,
         "save_freq": 1,
         "early_stopping": True,
-        "patience": 0*batch_epochs + 50,
+        "patience": batch_epochs + 50,
         "learning_rate_decay_enabled": False,
         "learning_rate_decay_factor": 0.85,
         "learning_rate_decay_freq": 20,
