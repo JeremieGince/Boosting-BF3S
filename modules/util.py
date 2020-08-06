@@ -13,7 +13,7 @@ def plotHistory_old(history: dict, **kwargs):
 
     epochs_range = range(1, len(acc)+1)
 
-    plt.figure(figsize=(12, 12))
+    plt.figure(figsize=(10, 12))
     plt.subplot(1, 2, 1)
     plt.plot(epochs_range, acc, label='Training Accuracy')
     if val_acc is not None:
@@ -46,8 +46,7 @@ def plotHistory(history: dict, **kwargs):
         for _metric_name, hist_vec in history[_p].items():
             metrics_to_phases[_metric_name][_p] = hist_vec
 
-    plt.figure(figsize=(12, 12))
-
+    fig = plt.figure(figsize=(12, 8))
     for i, metric_name in enumerate(metrics_to_phases):
         plt.subplot(1, len(metrics_to_phases.keys()), i+1)
 

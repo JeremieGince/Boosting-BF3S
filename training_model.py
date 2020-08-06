@@ -56,6 +56,7 @@ if __name__ == '__main__':
     print(util.get_str_repr_for_config(opt))
 
     if opt["Batch_Trainer_parameters"] is not None:
+        print("Batch training")
         batch_trainer = Trainer(
             model_manager=network_manager,
             dataset=mini_image_net,
@@ -69,6 +70,7 @@ if __name__ == '__main__':
         del batch_trainer
 
     if opt["FewShot_Trainer_parameters"] is not None:
+        print("Episodic training")
         few_shot_trainer = FewShotTrainer(
             model_manager=network_manager,
             dataset=mini_image_net,
