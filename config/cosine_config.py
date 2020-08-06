@@ -7,7 +7,7 @@ shot = 5
 t_shot = 5
 backbone = "conv-4-64"
 
-batch_epochs = 100
+batch_epochs = 00
 
 config = {
     "Tensorflow_constants": {
@@ -21,7 +21,7 @@ config = {
     "Model_parameters": {
         "name": f"cosine_classifier-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
-                f"_14",
+                f"_15",
         "method": FewShotImgLearner.Method.CosineNet,
         "alpha": None,
         "sl_kwargs": None,
@@ -42,7 +42,7 @@ config = {
 
     "Batch_Trainer_parameters": {
         "n_train_batch": 100,
-        "n_val_batch": 00,
+        "n_val_batch": 0,
         "n_epochs": batch_epochs,
         "n_test": 0,
 
@@ -68,8 +68,8 @@ config = {
         "n_train_episodes": 100,
         "n_val_episodes": 100,
         "n_test_episodes": 1,
-        "n_epochs": 0*batch_epochs + 00,
-        "n_test": 600,
+        "n_epochs": batch_epochs + 300,
+        "n_test": 900,
 
         # optimizer
         "learning_rate": 1e-3,
