@@ -276,14 +276,14 @@ class FewShotImgLearner(NetworkModelManager):
         return self._methods_to_build.get(self.method)()
 
     def _build_proto_net(self):
-        backbone = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
-        sl_model = get_sl_model(backbone, self.sl_add_on, **self.sl_kwargs) if self.sl_add_on is not None else None
+        backbone_net = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
+        sl_model = get_sl_model(backbone_net, self.sl_add_on, **self.sl_kwargs) if self.sl_add_on is not None else None
 
         self.model = Prototypical(
             w=self.img_size,
             h=self.img_size,
             c=self.channels,
-            backbone=backbone,
+            backbone_net=backbone_net,
             sl_model=sl_model,
         )
 
@@ -293,14 +293,14 @@ class FewShotImgLearner(NetworkModelManager):
         import logging
         tf.get_logger().setLevel(logging.ERROR)
 
-        backbone = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
-        sl_model = get_sl_model(backbone, self.sl_add_on, **self.sl_kwargs) if self.sl_add_on is not None else None
+        backbone_net = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
+        sl_model = get_sl_model(backbone_net, self.sl_add_on, **self.sl_kwargs) if self.sl_add_on is not None else None
 
         self.model = CosineClassifier(
             w=self.img_size,
             h=self.img_size,
             c=self.channels,
-            backbone=backbone,
+            backbone_net=backbone_net,
             sl_model=sl_model,
             **self.kwargs
         )
