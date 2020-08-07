@@ -143,7 +143,7 @@ class MiniImageNetDataset(DatasetBase):
 
     def preprocess_input(self, _input):
         # return tf.image.resize(_input/255, (self.image_size, self.image_size))
-        return _input/255.0
+        return tf.image.per_image_standardization(_input/255.0)  # computes (x - mean) / adjusted_stddev
 
     def get_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
         _raw_data = util.load_pickle_data(self.phase_to_file.get(phase))
@@ -182,51 +182,11 @@ class MiniImageNetDataset(DatasetBase):
                     tf.int32
                 ).numpy()
 
-                if output_form == OutputForm.LABEL:
-                    yield x_batch, ids_batch, y_batch
-                elif output_form == OutputForm.ROT:
-                    yield x_batch, ids_batch, y_batch
-                else:
-                    yield x_batch, ids_batch, y_batch
+                yield x_batch, ids_batch, y_batch
 
-            # while True:
-            #     x_batch = np.zeros([self._batch_size, _w, _h, _c], dtype=np.float32)
-            #     ids_batch = np.zeros([self._batch_size, n_classes], dtype=np.float32)
-            #     y_batch = np.zeros([self._batch_size, n_classes], dtype=np.float32)
-            #     classes_ep = np.random.permutation(n_classes)[:self._batch_size]
-            #
-            #     for _i, i_class in enumerate(classes_ep):
-            #         selected = np.random.permutation(n_img)[0]
-            #         x_batch[_i] = _data[i_class, selected[:]]
-            #         ids_batch[_i] = i_class
-            #
-            #     y_batch = tf.one_hot(ids_batch, n_classes).numpy()
-            #
-            #     if output_form == OutputForm.LABEL:
-            #         return x_batch, ids_batch, y_batch
-
-            # for _idx, (_image, _label) in enumerate(zip(_data["data"], _data["labels"])):
-            #     _image = self.preprocess_input(_image)
-            #
-            #     if output_form == OutputForm.LABEL:
-            #         yield _image, self._labels_to_one_hot[_label]
-            #
-            #     elif output_form == OutputForm.ROT:
-            #         _rot = np.random.choice(list(self.possible_rotations))
-            #         yield ndimage.rotate(_image, _rot, reshape=False), self.possible_rotations_to_one_hot[_rot]
-
-        if output_form == OutputForm.LABEL:
-            output_shapes = (tf.TensorShape([self.image_size, self.image_size, 3]),
-                             tf.TensorShape([n_classes, 1]),
-                             tf.TensorShape([n_classes, n_classes]))
-        elif output_form == OutputForm.ROT:
-            output_shapes = (tf.TensorShape([None, self.image_size, self.image_size, 3]),
-                             tf.TensorShape([n_classes, 1]),
-                             tf.TensorShape([n_classes, n_classes]))
-        else:
-            output_shapes = (tf.TensorShape([None, self.image_size, self.image_size, 3]),
-                             tf.TensorShape([n_classes, 1]),
-                             tf.TensorShape([n_classes, n_classes]))
+        output_shapes = (tf.TensorShape([self.image_size, self.image_size, 3]),
+                         tf.TensorShape([n_classes, 1]),
+                         tf.TensorShape([n_classes, n_classes]))
 
         _ds = tf.data.Dataset.from_generator(
             _gen,
@@ -262,56 +222,11 @@ class MiniImageNetDataset(DatasetBase):
                     support[_i] = _data[i_class, selected[:_n_shot]]
                     query[_i] = _data[i_class, selected[_n_shot:]]
 
-                if output_form == OutputForm.FS:
-                    yield support
-                    yield query
-                elif output_form == OutputForm.FS_SL:
-                    support_reshape = np.reshape(support, newshape=[_n_way*_n_shot, _w, _h, _c])
-                    query_reshape = np.reshape(query, newshape=[_n_way * _n_query, _w, _h, _c])
+                yield support
+                yield query
 
-                    sl_y_r = np.random.choice(list(self.possible_rotations), support_reshape.shape[0])
-                    sl_x = np.array(list(map(
-                        lambda _t: ndimage.rotate(_t[0], _t[1], reshape=False),
-                        zip(support_reshape, sl_y_r)
-                    )))
-                    sl_y = np.array(list(map(
-                        lambda _r: self.possible_rotations_to_one_hot[_r],
-                        sl_y_r
-                    )))
-
-                    sl_test_y_r = np.random.choice(list(self.possible_rotations), query_reshape.shape[0])
-                    sl_test_x = np.array(list(map(
-                        lambda _t: ndimage.rotate(_t[0], _t[1], reshape=False),
-                        zip(query_reshape, sl_test_y_r)
-                    )))
-                    sl_test_y = np.array(list(map(
-                        lambda _r: self.possible_rotations_to_one_hot[_r],
-                        sl_test_y_r
-                    )))
-
-                    yield support, query, sl_x, sl_y, sl_test_x, sl_test_y
-                else:
-                    raise NotImplementedError()
-
-        if output_form == OutputForm.FS:
-            output_types = tf.float32
-            output_shapes = tf.TensorShape([_n_way, None, _w, _h, _c])
-        elif output_form == OutputForm.FS_SL:
-            output_types = (
-                tf.float32, tf.float32,
-                tf.float32, tf.int32, tf.float32, tf.int32
-            )
-            output_shapes = (
-                tf.TensorShape([_n_way, _n_shot, _w, _h, _c]),
-                tf.TensorShape([_n_way, _n_query, _w, _h, _c]),
-
-                tf.TensorShape([_n_way*_n_shot, _w, _h, _c]),
-                tf.TensorShape([_n_way*_n_shot, self.get_output_size(OutputForm.ROT)]),
-                tf.TensorShape([_n_way*_n_query, _w, _h, _c]),
-                tf.TensorShape([_n_way*_n_query, self.get_output_size(OutputForm.ROT)]),
-            )
-        else:
-            raise NotImplementedError()
+        output_types = tf.float32
+        output_shapes = tf.TensorShape([_n_way, None, _w, _h, _c])
 
         _ds = tf.data.Dataset.from_generator(
             _gen,
