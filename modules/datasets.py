@@ -142,8 +142,18 @@ class MiniImageNetDataset(DatasetBase):
         self.image_size = 84
 
     def preprocess_input(self, _input):
-        # return tf.image.resize(_input/255, (self.image_size, self.image_size))
-        return tf.image.per_image_standardization(_input/255.0)  # computes (x - mean) / adjusted_stddev
+        nb_dims = len(_input.shape)
+        assert nb_dims >= 3
+
+        _input = _input/255.0
+
+        x_channels_ids = [i for i in range(nb_dims-3, nb_dims)]
+        x_means = [np.mean(_input[i]) for i in x_channels_ids]
+        x_stds = [max(np.std(_input[i]), 1.0/np.sqrt(_input.shape[i])) for i in x_channels_ids]
+
+        for i, c_id in enumerate(x_channels_ids):
+            _input[c_id] = (_input[c_id] - x_means[i]) / x_stds[i]
+        return _input
 
     def get_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
         _raw_data = util.load_pickle_data(self.phase_to_file.get(phase))
@@ -152,9 +162,9 @@ class MiniImageNetDataset(DatasetBase):
         first_key = list(_raw_data['class_dict'])[0]
         _data = np.zeros((len(_raw_data['class_dict']), len(_raw_data['class_dict'][first_key]), 84, 84, 3))
         for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
-            _data[i, :, :, :, :] = self.preprocess_input(_raw_data['image_data'][v, :])
+            _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
 
-        # _data = self.preprocess_input(_data)
+        _data = self.preprocess_input(_data)
         n_classes, n_img, _w, _h, _c = _data.shape
 
         if phase == TrainingPhase.TRAIN:
@@ -206,9 +216,9 @@ class MiniImageNetDataset(DatasetBase):
         first_key = list(_raw_data['class_dict'])[0]
         _data = np.zeros((len(_raw_data['class_dict']), len(_raw_data['class_dict'][first_key]), 84, 84, 3))
         for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
-            _data[i, :, :, :, :] = self.preprocess_input(_raw_data['image_data'][v, :])
+            _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
 
-        # _data = self.preprocess_input(_data)
+        _data = self.preprocess_input(_data)
         n_classes, n_img, _w, _h, _c = _data.shape
 
         def _gen():
