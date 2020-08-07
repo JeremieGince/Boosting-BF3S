@@ -152,9 +152,9 @@ class MiniImageNetDataset(DatasetBase):
         first_key = list(_raw_data['class_dict'])[0]
         _data = np.zeros((len(_raw_data['class_dict']), len(_raw_data['class_dict'][first_key]), 84, 84, 3))
         for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
-            _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
+            _data[i, :, :, :, :] = self.preprocess_input(_raw_data['image_data'][v, :])
 
-        _data = self.preprocess_input(_data)
+        # _data = self.preprocess_input(_data)
         n_classes, n_img, _w, _h, _c = _data.shape
 
         if phase == TrainingPhase.TRAIN:
@@ -206,9 +206,9 @@ class MiniImageNetDataset(DatasetBase):
         first_key = list(_raw_data['class_dict'])[0]
         _data = np.zeros((len(_raw_data['class_dict']), len(_raw_data['class_dict'][first_key]), 84, 84, 3))
         for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
-            _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
+            _data[i, :, :, :, :] = self.preprocess_input(_raw_data['image_data'][v, :])
 
-        _data = self.preprocess_input(_data)
+        # _data = self.preprocess_input(_data)
         n_classes, n_img, _w, _h, _c = _data.shape
 
         def _gen():
