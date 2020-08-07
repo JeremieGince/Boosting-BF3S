@@ -184,7 +184,7 @@ class MiniImageNetDataset(DatasetBase):
 
                 yield x_batch, ids_batch, y_batch
 
-        output_shapes = (tf.TensorShape([self.image_size, self.image_size, 3]),
+        output_shapes = (tf.TensorShape([None, self.image_size, self.image_size, 3]),
                          tf.TensorShape([n_classes, 1]),
                          tf.TensorShape([n_classes, n_classes]))
 
