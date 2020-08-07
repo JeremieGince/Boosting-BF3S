@@ -18,7 +18,7 @@ class FewShot(tf.keras.Model):
                  w, h, c,
 
                  # Model parameters
-                 backbone: tf.keras.Model,
+                 backbone_net: tf.keras.Model,
 
                  # SL bosster
                  sl_model: tf.keras.Model = None,
@@ -32,11 +32,11 @@ class FewShot(tf.keras.Model):
             w (int): image width .
             h (int): image height.
             c (int): number of channels.
-            backbone (tf.keras.Model): the encoder model as backbone.
+            backbone_net (tf.keras.Model): the encoder model as backbone.
         """
         super(FewShot, self).__init__()
         self.w, self.h, self.c = w, h, c
-        self.backbone = backbone
+        self.backbone = backbone_net
         self.sl_model = sl_model
         self.alpha = kwargs.get("alpha", 1.0)
 
@@ -61,7 +61,7 @@ class Prototypical(FewShot):
                  w, h, c,
 
                  # Model parameters
-                 backbone: tf.keras.Model,
+                 backbone_net: tf.keras.Model,
 
                  # SL bosster
                  sl_model: tf.keras.Model = None,
@@ -73,12 +73,12 @@ class Prototypical(FewShot):
             w (int): image width .
             h (int): image height.
             c (int): number of channels.
-            backbone (tf.keras.Model): the encoder model as backbone.
+            backbone_net (tf.keras.Model): the encoder model as backbone.
 
         """
         super(Prototypical, self).__init__(
             w, h, c,
-            backbone,
+            backbone_net,
             sl_model,
             **kwargs
         )
@@ -205,7 +205,7 @@ class CosineClassifier(FewShot):
                  w, h, c,
 
                  # Model parameters
-                 backbone: tf.keras.Model,
+                 backbone_net: tf.keras.Model,
 
                  # SL booster
                  sl_model: tf.keras.Model = None,
@@ -219,11 +219,11 @@ class CosineClassifier(FewShot):
             w (int): image width .
             h (int): image height.
             c (int): number of channels.
-            backbone (tf.keras.Model): the encoder model as backbone.
+            backbone_net (tf.keras.Model): the encoder model as backbone.
         """
         super(CosineClassifier, self).__init__(
             w, h, c,
-            backbone,
+            backbone_net,
             sl_model,
             **kwargs
         )
