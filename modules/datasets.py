@@ -84,6 +84,9 @@ class DatasetBase:
     def preprocess_input(self, _input):
         return _input
 
+    def augment_data(self, _data):
+        return _data
+
     def _add_labels(self, _labels):
         self.labels = set.union(self.labels, set(_labels))
         self._labels_to_one_hot = {
@@ -155,6 +158,10 @@ class MiniImageNetDataset(DatasetBase):
             _input[c_id] = (_input[c_id] - x_means[i]) / x_stds[i]
         return _input
 
+    def augment_data(self, _data):
+        assert len(_data.shape) == 4 or len(_data.shape) == 3
+        return tf.image.random_flip_left_right(_data)
+
     def get_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
         _raw_data = util.load_pickle_data(self.phase_to_file.get(phase))
 
@@ -163,6 +170,9 @@ class MiniImageNetDataset(DatasetBase):
         _data = np.zeros((len(_raw_data['class_dict']), len(_raw_data['class_dict'][first_key]), 84, 84, 3))
         for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
             _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
+
+        if phase == TrainingPhase.TRAIN:
+            _data = np.array(map(lambda b: self.augment_data(b), _data))
 
         _data = self.preprocess_input(_data)
         n_classes, n_img, _w, _h, _c = _data.shape
@@ -218,7 +228,11 @@ class MiniImageNetDataset(DatasetBase):
         for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
             _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
 
+        if phase == TrainingPhase.TRAIN:
+            _data = np.array(map(lambda b: self.augment_data(b), _data))
+
         _data = self.preprocess_input(_data)
+        print(f"data.shape: {_data.shape}")
         n_classes, n_img, _w, _h, _c = _data.shape
 
         def _gen():
@@ -254,27 +268,43 @@ class MiniImageNetDataset(DatasetBase):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import sys
+    from tensorflow.keras import layers
+
     mini_imagenet_dataset = MiniImageNetDataset(data_dir=r"D:\Datasets\mini-imagenet")
     # mini_imagenet_dataset.plot_samples()
     #
     mini_gen = mini_imagenet_dataset.get_few_shot_generator(
-        _n_way=30, _n_shot=5, _n_query=5,
-        phase=TrainingPhase.TRAIN, output_form=OutputForm.FS_SL)
+        _n_way=6, _n_shot=5, _n_query=4,
+        phase=TrainingPhase.TRAIN)
 
-    print(mini_gen, iter(mini_gen), next(iter(mini_gen)), sep='\n')
+    data_augmentation = tf.keras.Sequential([
+        layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
+    ])
 
-    support, query, [sl_x, sl_y, sl_test_x, sl_test_y] = next(iter(mini_gen))
+    mini_augmented_gen = mini_gen.ds.map(lambda x: data_augmentation(x, training=True),
+                                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    b = [e.nbytes for e in [support, query, sl_x, sl_y, sl_test_x, sl_test_y]]
-    print(b, sum(b))
+    mini_gen_itr = iter(mini_gen)
+    mini_augmented_gen_itr = iter(mini_augmented_gen)
+    # print(mini_gen, mini_gen_itr, next(mini_gen_itr), sep='\n')
 
-    # _l = [support, query, sl_x, sl_test_x]
-    # _lbl = ["support", "query", str(sl_y), str(sl_test_y)]
-    # fig = plt.figure()
-    # axes = fig.subplots(1, len(_l))
-    #
-    # for i, img in enumerate(_l):
-    #     axes[i].imshow(np.squeeze(img))
-    #     axes[i].set_title(_lbl[i])
-    #
-    # plt.show()
+    support = next(mini_gen_itr)
+    print(f"support.shape: {support.shape}")
+    query = next(mini_gen_itr)
+    print(f"query.shape: {query.shape}")
+
+    support_aug = next(mini_augmented_gen_itr)
+    print(f"support_aug.shape: {support_aug.shape}")
+    query_aug = next(mini_augmented_gen_itr)
+    print(f"query_aug.shape: {query_aug.shape}")
+
+    _l = [support[0][0], support_aug[0][0]]
+    _lbl = ["support", "support_aug", ]
+    fig = plt.figure()
+    axes = fig.subplots(1, len(_l))
+
+    for i, img in enumerate(_l):
+        axes[i].imshow(np.squeeze(img))
+        axes[i].set_title(_lbl[i])
+
+    plt.show()
