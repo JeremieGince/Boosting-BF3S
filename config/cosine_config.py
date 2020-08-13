@@ -5,9 +5,9 @@ way = 30
 t_way = 5
 shot = 5
 t_shot = 5
-backbone = "conv-4-64_avg_pool"
+backbone = "conv-4-64"
 
-batch_epochs = 100
+batch_epochs = 150
 
 config = {
     "Tensorflow_constants": {
@@ -21,14 +21,13 @@ config = {
     "Model_parameters": {
         "name": f"cosine_classifier-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
-                f"_22",
+                f"_23",
         "method": FewShotImgLearner.Method.CosineNet,
         "backbone": backbone,
         "alpha": None,
         "sl_kwargs": None,
         "n_cls_base": 64,
         "n_cls_val": 16,
-        # "dist_mth": "weights",
     },
 
     "Network_callback_parameters": {
