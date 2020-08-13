@@ -217,14 +217,16 @@ class Trainer:
         self.progress.close()
         phase_logs = {k: np.array(v) for k, v in phase_logs.items()}
 
+        pprint = "\n--- Test results --- \n" \
+                f"{self.config}" \
+                f"Train epochs: {self.modelManager.current_epoch} \n" \
+                f"Test epochs: {n} \n" \
+                f"Mean accuracy: {np.mean(phase_logs.get('accuracy')) * 100:.2f}% " \
+                f"± {np.std(phase_logs.get('accuracy')) * 100:.2f} \n" \
+                f"{'-' * 35}"
+        phase_logs["pprint"] = pprint
         if self.verbose:
-            print("\n--- Test results --- \n"
-                  f"{self.config}"
-                  f"Train epochs: {self.modelManager.current_epoch} \n"
-                  f"Test epochs: {n} \n"
-                  f"Mean accuracy: {np.mean(phase_logs.get('accuracy')) * 100:.2f}% "
-                  f"± {np.std(phase_logs.get('accuracy')) * 100:.2f} \n"
-                  f"{'-' * 35}")
+            print(pprint)
 
         return phase_logs
 
@@ -376,14 +378,16 @@ class FewShotTrainer(Trainer):
         self.progress.close()
         phase_logs = {k: np.array(v) for k, v in phase_logs.items()}
 
+        pprint = f"\n--- Test results --- \n" \
+                  f"{self.config}" \
+                  f"Train episodes: {self.n_train_episodes * self.modelManager.current_epoch} \n" \
+                  f"Test episodes: {n*self.n_test_episodes} \n" \
+                  f"Mean accuracy: {np.mean(phase_logs.get('accuracy'))*100:.2f}% " \
+                  f"± {np.std(phase_logs.get('accuracy'))*100:.2f} \n" \
+                  f"{'-'*35}"
+        phase_logs["pprint"] = pprint
         if self.verbose:
-            print("\n--- Test results --- \n"
-                  f"{self.config}"
-                  f"Train episodes: {self.n_train_episodes * self.modelManager.current_epoch} \n"
-                  f"Test episodes: {n*self.n_test_episodes} \n"
-                  f"Mean accuracy: {np.mean(phase_logs.get('accuracy'))*100:.2f}% "
-                  f"± {np.std(phase_logs.get('accuracy'))*100:.2f} \n"
-                  f"{'-'*35}")
+            print(pprint)
 
         return phase_logs
 
