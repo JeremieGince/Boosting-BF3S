@@ -5,7 +5,7 @@ way = 30
 t_way = 5
 shot = 5
 t_shot = 5
-backbone = "conv-4-64"
+backbone = "conv-4-64_avg_pool"
 
 batch_epochs = 100
 
