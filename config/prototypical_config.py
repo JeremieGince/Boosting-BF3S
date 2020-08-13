@@ -2,7 +2,7 @@ import tensorflow as tf
 from modules.modelManagers import FewShotImgLearner
 
 
-way = 6
+way = 30
 t_way = 5
 shot = 5
 t_shot = 5
@@ -21,7 +21,7 @@ config = {
     "model_type": FewShotImgLearner,
     "Model_parameters": {
         "name": f"prototypical_few_shot-{backbone}_"
-                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot_Adam",
+                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot",
         "method": FewShotImgLearner.Method.PrototypicalNet,
         "alpha": None,
         "sl_kwargs": None,
