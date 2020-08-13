@@ -44,6 +44,8 @@ if __name__ == '__main__':
     tf.random.set_seed(opt["Tensorflow_constants"]["seed"])
     np.random.seed(opt["Tensorflow_constants"]["seed"])
 
+    print(f"Physical devices: {tf.config.experimental.list_physical_devices()}")
+
     mini_image_net = MiniImageNetDataset(**opt["Dataset_parameters"])
 
     network_manager = opt["model_type"](**opt["Model_parameters"])
