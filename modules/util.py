@@ -234,6 +234,13 @@ def save_opt(opt):
     json.dump(opt, open(path+"/opt.json", "w"), skipkeys=True, indent=3, default=str)
 
 
+def save_test_results(opt, logs):
+    import os, json
+    path = f"training_data/{opt['Model_parameters']['name']}"
+    os.makedirs(path, exist_ok=True)
+    json.dump(logs, open(path + "/test_results.json", "w"), skipkeys=True, indent=3, default=str)
+
+
 if __name__ == '__main__':
     import numpy as np
     import tensorflow as tf
