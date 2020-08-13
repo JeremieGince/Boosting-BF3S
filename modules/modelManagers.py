@@ -30,6 +30,7 @@ class NetworkModelManager:
         "VGG16": tf.keras.applications.VGG16,
         "VGG19": tf.keras.applications.VGG19,
         "conv-4-64": backbones.conv_4_64,
+        "conv-4-64_avg_pool": backbones.conv_4_64_avg_pool,
     }
 
     def __init__(self, **kwargs):
@@ -45,6 +46,9 @@ class NetworkModelManager:
         self.model = None
         self.current_epoch = 0
 
+        self.load_history()
+        self.update_curr_epoch()
+
         self.output_form: util.OutputForm = kwargs.get("output_form", util.OutputForm.LABEL)
 
         # setting the optimizer
@@ -59,6 +63,13 @@ class NetworkModelManager:
 
         # metrics
         self.metrics: dict = {"loss": None}
+
+        # others
+        self.teacher_net_manager = kwargs.get("teacher", None)
+        self.init_weights_path = kwargs.get("weights_path", None)
+        if self.init_weights_path is not None and self.current_epoch <= 0:
+            self.model.load_weights(self.init_weights_path)
+            self.save_weights()
 
     def summary(self):
         return self.model.summary()
