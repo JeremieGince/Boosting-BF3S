@@ -27,7 +27,7 @@ config = {
         "optimizer": tf.keras.optimizers.Adam,
 
         "teacher": teacher_config["model_type"](**teacher_config["Model_parameters"]),
-        "weights_path": teacher_config["model_type"]["name"] + SelfLearnerWithImgRotation.WEIGHTS_PATH_EXT
+        "weights_path": teacher_config["Model_parameters"]["name"] + SelfLearnerWithImgRotation.WEIGHTS_PATH_EXT
     },
 
     "Network_callback_parameters": {
