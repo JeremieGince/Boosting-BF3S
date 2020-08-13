@@ -33,13 +33,15 @@ class NetworkModelManager:
         "conv-4-64_avg_pool": backbones.conv_4_64_avg_pool,
     }
 
+    WEIGHTS_PATH_EXT = "/cp-weights.h5"
+
     def __init__(self, **kwargs):
         policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
         tf.keras.mixed_precision.experimental.set_policy(policy)
 
         self.name = kwargs.get("name", "network_model")
         os.makedirs("training_data/" + self.name, exist_ok=True)
-        self.checkpoint_path = "training_data/" + self.name + "/cp-weights.h5"
+        self.checkpoint_path = "training_data/" + self.name + self.WEIGHTS_PATH_EXT
         self.history_path = f"training_data/{self.name}/cp-history.json"
         self.checkpoint_dir = os.path.dirname(self.checkpoint_path)
         self.history = dict()
@@ -67,8 +69,11 @@ class NetworkModelManager:
         # others
         self.teacher_net_manager = kwargs.get("teacher", None)
         self.init_weights_path = kwargs.get("weights_path", None)
+
+    def init_model(self):
+        self.build_and_compile()
         if self.init_weights_path is not None and self.current_epoch <= 0:
-            self.model.load_weights(self.init_weights_path)
+            self.model.load_weights(self.init_weights_path),  # skip_mismatch=True
             self.save_weights()
 
     def summary(self):
@@ -234,6 +239,8 @@ class SelfLearnerWithImgRotation(NetworkModelManager):
         self.sl_type = kwargs.get("sl_type", util.SLBoostedType.ROT)
         self._kwargs = kwargs
 
+        self.init_model()
+
     def build(self):
         self.model = get_sl_model(
             backbone=self.available_backbones.get(self._backbone)(
@@ -282,6 +289,8 @@ class FewShotImgLearner(NetworkModelManager):
         self.sl_kwargs = kwargs.get("sl_kwargs", {})
 
         self.kwargs = kwargs
+
+        self.init_model()
 
     def build(self):
         return self._methods_to_build.get(self.method)()
