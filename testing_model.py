@@ -49,7 +49,6 @@ if __name__ == '__main__':
     mini_image_net = MiniImageNetDataset(**opt["Dataset_parameters"])
 
     network_manager = opt["model_type"](**opt["Model_parameters"])
-    network_manager.build_and_compile()
 
     network_callback = NetworkManagerCallback(
         network_manager=network_manager,
@@ -67,7 +66,8 @@ if __name__ == '__main__':
             **opt["Batch_Trainer_parameters"]
         )
         if opt["Batch_Trainer_parameters"]["n_test"]:
-            batch_trainer.test(n=opt["Batch_Trainer_parameters"]["n_test"])
+            results = batch_trainer.test(n=opt["Batch_Trainer_parameters"]["n_test"])
+            util.save_test_results(opt, results)
 
         del batch_trainer
 
@@ -80,6 +80,7 @@ if __name__ == '__main__':
             **opt["FewShot_Trainer_parameters"],
         )
         if opt["FewShot_Trainer_parameters"]["n_test"]:
-            few_shot_trainer.test(n=opt["FewShot_Trainer_parameters"]["n_test"])
+            results = few_shot_trainer.test(n=opt["FewShot_Trainer_parameters"]["n_test"])
+            util.save_test_results(opt, results)
 
     util.plotHistory(network_manager.history, savename="training_curve_" + network_manager.name, savefig=not cerebus)
