@@ -1,6 +1,7 @@
 import tensorflow as tf
 from modules.modelManagers import SelfLearnerWithImgRotation
 from modules.util import SLBoostedType
+from config.prototypical_rotation_config import config as teacher_config
 
 backbone = "conv-4-64"
 feat_dist_mth = "l2"
@@ -24,6 +25,9 @@ config = {
         "learning_rate": 1e-3,
         "optimizer_args": {},
         "optimizer": tf.keras.optimizers.Adam,
+
+        "teacher": teacher_config["model_type"](**teacher_config["Model_parameters"]),
+        "weights_path": teacher_config["model_type"]["name"] + SelfLearnerWithImgRotation.WEIGHTS_PATH_EXT
     },
 
     "Network_callback_parameters": {
