@@ -160,7 +160,9 @@ class MiniImageNetDataset(DatasetBase):
 
     def augment_data(self, _data):
         assert len(_data.shape) == 4 or len(_data.shape) == 3
-        return tf.image.random_flip_left_right(_data)
+        with tf.device("CPU:0"):
+            _data = tf.image.random_flip_left_right(_data)
+        return _data
 
     def get_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
         _raw_data = util.load_pickle_data(self.phase_to_file.get(phase))
@@ -170,10 +172,10 @@ class MiniImageNetDataset(DatasetBase):
         _data = np.zeros((len(_raw_data['class_dict']), len(_raw_data['class_dict'][first_key]), 84, 84, 3))
         for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
             _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
-
-        if phase == TrainingPhase.TRAIN:
-            _data = np.array(map(lambda b: self.augment_data(b), _data))
-
+        # print(_data.shape)
+        # if phase == TrainingPhase.TRAIN:
+        #     _data = np.array(list(map(lambda b: self.augment_data(b), _data)))
+        # print(_data.shape)
         _data = self.preprocess_input(_data)
         n_classes, n_img, _w, _h, _c = _data.shape
 
@@ -228,11 +230,11 @@ class MiniImageNetDataset(DatasetBase):
         for i, (k, v) in enumerate(_raw_data['class_dict'].items()):
             _data[i, :, :, :, :] = _raw_data['image_data'][v, :]
 
-        if phase == TrainingPhase.TRAIN:
-            _data = np.array(map(lambda b: self.augment_data(b), _data))
+        # if phase == TrainingPhase.TRAIN:
+        #     _data = np.array(map(lambda b: self.augment_data(b), _data))
 
         _data = self.preprocess_input(_data)
-        print(f"data.shape: {_data.shape}")
+        # print(f"data.shape: {_data.shape}")
         n_classes, n_img, _w, _h, _c = _data.shape
 
         def _gen():
