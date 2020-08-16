@@ -52,6 +52,7 @@ def conv_4_64_avg_pool(input_shape, *args, **kwargs):
             tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding='same'),
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.ReLU(),
+
             tf.keras.layers.AveragePooling2D((2, 2)),
 
             Flatten(dtype=tf.float32)],
