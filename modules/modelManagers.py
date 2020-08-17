@@ -31,6 +31,7 @@ class NetworkModelManager:
         "VGG19": tf.keras.applications.VGG19,
         "conv-4-64": backbones.conv_4_64,
         "conv-4-64_avg_pool": backbones.conv_4_64_avg_pool,
+        "conv_4_64_glob_avg_pool": backbones.conv_4_64_glob_avg_pool,
     }
 
     WEIGHTS_PATH_EXT = "/cp-weights.h5"
