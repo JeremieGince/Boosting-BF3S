@@ -49,9 +49,9 @@ config = {
         "n_test_query": 5,
         "n_train_episodes": 100,
         "n_val_episodes": 100,
-        "n_test_episodes": 600,
+        "n_test_episodes": 1,
         "n_epochs": 300,
-        "n_test": 10,
+        "n_test": 900,
 
         # optimizer
         "learning_rate": 1e-3,
