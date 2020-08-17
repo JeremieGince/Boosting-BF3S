@@ -241,6 +241,23 @@ def save_test_results(opt, logs):
     json.dump(logs, open(path + "/test_results.json", "w"), skipkeys=True, indent=3, default=str)
 
 
+def mean_confidence_interval(data, confidence=0.95):
+    """
+    Compute a confidence interval from sample data
+    Reference: https://stackoverflow.com/questions/15033511/compute-a-confidence-interval-from-sample-data
+    :param data: the actual data, (np.ndarray or list)
+    :param confidence: the confidence value, a int between 0.0 and 1.0
+    :return: The confidence interval: (tuple)((float) mean, (float) h, )
+    """
+    import numpy as np
+    import scipy.stats
+    a = 1.0 * np.array(data)
+    n = len(a)
+    m, se = np.mean(a), scipy.stats.sem(a)
+    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
+    return m, h
+
+
 if __name__ == '__main__':
     import numpy as np
     import tensorflow as tf
