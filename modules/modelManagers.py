@@ -16,6 +16,9 @@ os.environ["PATH"] += os.pathsep + r'C:\Program Files (x86)\Graphviz2.38\bin/'
 
 
 class NetworkModelManager:
+    """
+    This class is used to manage a keras model.
+    """
     available_backbones = {
         "InceptionResNetV2": tf.keras.applications.InceptionResNetV2,
         "InceptionV3": tf.keras.applications.InceptionV3,
@@ -31,12 +34,33 @@ class NetworkModelManager:
         "VGG19": tf.keras.applications.VGG19,
         "conv-4-64": backbones.conv_4_64,
         "conv-4-64_avg_pool": backbones.conv_4_64_avg_pool,
-        "conv_4_64_glob_avg_pool": backbones.conv_4_64_glob_avg_pool,
+        "conv-4-64_glob_avg_pool": backbones.conv_4_64_glob_avg_pool,
     }
 
     WEIGHTS_PATH_EXT = "/cp-weights.h5"
 
     def __init__(self, **kwargs):
+        """
+        Constructor of NetworkModelManager.
+
+        :param kwargs: a dict of parameters (dict){
+
+            :param name: a string of the name of the network manage (str). This name is also used for the name of
+            the directory that will contained all the data about this network.
+
+            Optimizer parameters
+            :param learning_rate: The learning of the optimizer. (float)
+            :param momentum: The momentum of the optimizer. (float)
+            :param use_nesterov: For SGD optimizer, use nesterov if True. (bool)
+            :param optimizer_args: arguments to pass to the optimizer. (dict)
+            :param optimizer: The type of the optimizer. (tensorflow.keras.optimizers)
+
+            Others
+            :param output_form: The ouput form of the network (util.OutputForm)
+            :param teacher: The teacher of the current model.
+            :param weights_path: The path of the initial weights for the model. (str)
+        }
+        """
         policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
         tf.keras.mixed_precision.experimental.set_policy(policy)
 
@@ -72,37 +96,69 @@ class NetworkModelManager:
         self.init_weights_path = kwargs.get("weights_path", None)
 
     def init_model(self):
+        """
+        Used to initiate the model and its weights.
+        :return: None
+        """
         self.build_and_compile()
         if self.init_weights_path is not None and self.current_epoch <= 0:
             self.model.load_weights(self.init_weights_path),  # skip_mismatch=True
             self.save_weights()
 
-    def summary(self):
+    def summary(self) -> str:
+        """
+        :return: The summary of the model. (str)
+        """
         return self.model.summary()
 
     def load_weights(self):
+        """
+        Used to load the weights of the model in the current checkpoint_path.
+        :return: None
+        """
         assert self.model is not None
         self.model.load_weights(self.checkpoint_path)
 
     def save_weights(self):
+        """
+        Used the save the weights of the current model at the checkpoint_path.
+        :return: None
+        """
         self.model.save_weights(self.checkpoint_path)
 
     def load_history(self):
+        """
+        Used to load the current history in the attribute self.history.
+        :return: None
+        """
         import json
         if os.path.exists(self.history_path):
             self.history = json.load(open(self.history_path, 'r'))
         self.update_curr_epoch()
 
     def save_history(self):
+        """
+        Used to save the current history at the history_path.
+        :return: None
+        """
         import json
-
         json.dump(self.history, open(self.history_path, 'w'), indent=3)
 
     def update_curr_epoch(self):
+        """
+        Used to load the current epoch of the model with the current history in the attribute self.current_epoch.
+        :return: None
+        """
         self.current_epoch = len(self.history.get("train", {}).get("loss", []))
 
     @staticmethod
     def concat_phase_logs(logs_0: dict, logs_1: dict):
+        """
+        Used to concatenate two logs dictonary.
+        :param logs_0: The first log (dict)
+        :param logs_1: The second log (dict).
+        :return: The concanate version of logs_0 and logs_1. (dict)
+        """
         re_logs = {**logs_0, **logs_1}
 
         for key, value in re_logs.items():
@@ -125,22 +181,43 @@ class NetworkModelManager:
         return re_logs
 
     def update_history(self, other: dict):
+        """
+        Update the history with another history dict.
+        :param other: history to concatenate after the current one. (dict)
+        :return: None
+        """
         for _phase, p_logs in other.items():
             self.history[_phase] = self.concat_phase_logs(self.history.get(_phase, {}), p_logs)
         self.save_history()
 
     def load(self):
+        """
+        Load the weights and the history.
+        :return: None
+        """
         self.load_weights()
         self.load_history()
 
     def save(self):
+        """
+        Save the weights and the history.
+        :return: None
+        """
         self.save_weights()
         self.save_history()
 
     def build(self):
+        """
+        Build the current model and stock it in self.model.
+        :return: None
+        """
         raise NotImplementedError
 
     def compile(self):
+        """
+        Used to compile the current model.
+        :return: None
+        """
         assert self.model is not None
         self.model.compile(
             optimizer=self.optimizer,
@@ -152,6 +229,10 @@ class NetworkModelManager:
         return self.model
 
     def build_and_compile(self):
+        """
+        Build and compile the current model.
+        :return: the current model. (tf.keras.Model)
+        """
         self.model = self.build()
         self.model = self.compile()
 
@@ -161,15 +242,47 @@ class NetworkModelManager:
 
     @staticmethod
     def loss_function(y_true, y_pred, **kwargs):
+        """
+        Used to stock the current loss_function.
+        :param y_true: The truth labels.
+        :param y_pred: The predicted labels.
+        :param kwargs: the args for the loss function.
+        :return: the loss.
+        """
         return tf.keras.losses.categorical_crossentropy(y_true, y_pred, **kwargs)
 
     def compute_metrics(self, *args, **kwargs) -> dict:
+        """
+        Used to compute the metrics of the current call
+        :param args:
+        :param kwargs:
+        :return:
+        """
         loss, acc = self.model.call(*args, **kwargs)
         return {"loss": loss, "accuracy": acc}
 
 
 class NetworkManagerCallback(tf.keras.callbacks.Callback):
+    """
+    tf.keras.callbacks.Callback child class for the NetworkManager object.
+    """
     def __init__(self, network_manager: NetworkModelManager, **kwargs):
+        """
+        Contructor of NetworkManagerCallback.
+        :param network_manager: The NetworkModelManager associated with the current callback instance.
+        :param kwargs: a dict of parameters (dict){
+
+            base parameters
+            :param verbose: print stats if True. (bool)
+            :param save_freq: The saving frequency (in epoch) of the model. (int)
+            :param
+
+            EarlyStopping parameters
+
+            Learning rate decay
+
+        }
+        """
         super().__init__()
 
         # base parameters
