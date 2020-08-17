@@ -55,6 +55,8 @@ def plotHistory(history: dict, **kwargs):
 
         plt.legend(loc='lower right')
         plt.title(f'{metric_name}')
+        plt.xlabel("Epochs")
+        plt.grid()
 
     if kwargs.get("savefig", True):
         os.makedirs("Figures/", exist_ok=True)
