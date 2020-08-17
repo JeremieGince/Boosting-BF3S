@@ -7,17 +7,10 @@
    },
    "model_type": "<class 'modules.modelManagers.FewShotImgLearner'>",
    "Model_parameters": {
-      "name": "prototypical_rot-conv-4-64_30way5shot_5tway5tshot_alpha100e-2_Adam1e-3_c",
+      "name": "prototypical_few_shot-conv-4-64_30way5shot_5tway5tshot_c",
       "method": "Method.PrototypicalNet",
-      "alpha": 1.0,
-      "sl_boosted_type": "SLBoostedType.ROT",
-      "sl_kwargs": {
-         "hidden_neurons": null,
-         "classifier_type": "cosine"
-      },
-      "learning_rate": 0.001,
-      "optimizer_args": {},
-      "optimizer": "<class 'tensorflow.python.keras.optimizer_v2.adam.Adam'>"
+      "alpha": null,
+      "sl_kwargs": null
    },
    "Network_callback_parameters": {
       "verbose": false,
@@ -40,6 +33,9 @@
       "n_val_episodes": 100,
       "n_test_episodes": 1,
       "n_epochs": 300,
-      "n_test": 900
+      "n_test": 900,
+      "learning_rate": 0.001,
+      "optimizer_args": {},
+      "optimizer": "<class 'tensorflow.python.keras.optimizer_v2.adam.Adam'>"
    }
 }
