@@ -2,12 +2,14 @@ from modules.datasets import MiniImageNetDataset
 from modules.trainers import FewShotTrainer, Trainer
 from modules.modelManagers import NetworkManagerCallback
 import modules.util as util
-from config.prototypical_config import config as proto_config
-from config.prototypical_rotation_config import config as proto_rot_config
-from config.cosine_config import config as cosine_config
-from config.cosine_rotation_config import config as cosine_rot_config
-from config.selflearning_rot_config import config as sl_rot_config
-from config.selflearning_rotFeat_config import config as sl_rot_feat_config
+# from config.prototypical_config import config as proto_config
+# from config.prototypical_rotation_config import config as proto_rot_config
+# from config.cosine_config import config as cosine_config
+# from config.cosine_rotation_config import config as cosine_rot_config
+# from config.selflearning_rot_config import config as sl_rot_config
+# from config.selflearning_rotFeat_config import config as sl_rot_feat_config
+# from config.prototypical_rotFeat_config import config as proto_rotFeat_config
+import config
 
 import tensorflow as tf
 import numpy as np
@@ -16,12 +18,13 @@ import sys
 
 if __name__ == '__main__':
     _mth_to_config = {
-        "sl_rot": sl_rot_config,
-        "sl_rotFeat": sl_rot_feat_config,
-        "proto": proto_config,
-        "proto_rot": proto_rot_config,
-        "cosine": cosine_config,
-        "cosine_rot": cosine_rot_config,
+        "sl_rot": config.selflearning_rot_config,
+        "sl_rotFeat": config.selflearning_rotFeat_config,
+        "proto": config.prototypical_config,
+        "proto_rot": config.prototypical_rotation_config,
+        "proto_rotFeat": config.prototypical_rotFeat_config,
+        "cosine": config.cosine_config,
+        "cosine_rot": config.cosine_rotation_config,
     }
 
     cerebus = False
@@ -31,12 +34,12 @@ if __name__ == '__main__':
         cerebus = True
     else:
         data_dir = r"D:\Datasets\mini-imagenet"
-        _mth = "cosine_rot"
+        _mth = "proto_rotFeat"
     assert _mth in _mth_to_config, f"Method {_mth} is not recognized"
 
-    opt = _mth_to_config[_mth]
+    opt = _mth_to_config[_mth].config
     opt["Dataset_parameters"]["data_dir"] = data_dir
-    opt["Model_parameters"]["name"] = opt["Model_parameters"]["name"]+f"{'_c' if cerebus else ''}"
+    # opt["Model_parameters"]["name"] = opt["Model_parameters"]["name"]+f"{'_c' if cerebus else ''}"
 
     util.save_opt(opt)
 
