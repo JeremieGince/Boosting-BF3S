@@ -22,7 +22,7 @@
       "verbose": false,
       "save_freq": 1,
       "early_stopping": true,
-      "patience": 350,
+      "patience": 51,
       "learning_rate_decay_enabled": false,
       "learning_rate_decay_factor": 0.85,
       "learning_rate_decay_freq": 20
@@ -30,7 +30,7 @@
    "Batch_Trainer_parameters": {
       "n_train_batch": 100,
       "n_val_batch": 0,
-      "n_epochs": 300,
+      "n_epochs": 1,
       "n_test": 0,
       "learning_rate": 0.001,
       "optimizer_args": {
@@ -50,7 +50,7 @@
       "n_train_episodes": 100,
       "n_val_episodes": 100,
       "n_test_episodes": 1,
-      "n_epochs": 600,
+      "n_epochs": 301,
       "n_test": 2000,
       "learning_rate": 0.001,
       "optimizer_args": {

@@ -164,13 +164,13 @@ class Trainer:
             if phase == util.TrainingPhase.TRAIN:
                 with tf.GradientTape() as tape:
                     _inputs = next(_data_itr)
-                    batch_logs = self.modelManager.compute_metrics(_inputs, training=True)  # TODO: ask ModelManager to get metrics dict as logs
+                    batch_logs = self.modelManager.compute_batch_metrics(_inputs, training=True)
 
                 grads = tape.gradient(batch_logs["loss"], self.model.trainable_variables)
                 self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
             elif phase == util.TrainingPhase.VAL:
                 _inputs = next(_data_itr)
-                batch_logs = self.modelManager.compute_metrics(_inputs, training=False)
+                batch_logs = self.modelManager.compute_batch_metrics(_inputs, training=False)
             else:
                 raise NotImplementedError(f"Training phase: {phase} not implemented")
 
@@ -211,12 +211,12 @@ class Trainer:
 
         for i in range(n):
             _inputs = next(_data_itr)
-            loss, acc = self.model.call(_inputs, training=False)
+            batch_logs = self.modelManager.compute_batch_metrics(_inputs, training=False)
 
             # Track progress
-            # TODO: get metrics automatically
-            self.running_metrics["loss"].update_state(loss)
-            self.running_metrics["accuracy"].update_state(acc)
+            # TODO: get metrics automatically by the NetworkModelManager
+            self.running_metrics["loss"].update_state(batch_logs["loss"])
+            self.running_metrics["accuracy"].update_state(batch_logs["accuracy"])
 
             # update progress
             self.progress.update(1)
@@ -313,29 +313,20 @@ class FewShotTrainer(Trainer):
             # Forward & update gradients
             if phase == util.TrainingPhase.TRAIN:
                 with tf.GradientTape() as tape:
-                    _support = next(_data_itr)
-                    self.model.set_support(_support)
+                    episode_logs = self.modelManager.compute_episodic_metrics(_data_itr, training=True)
 
-                    _query = next(_data_itr)
-                    loss, acc = self.model.apply_query(_query)  # TODO: ask ModelManager to get metrics dict as logs
-
-                grads = tape.gradient(loss, self.model.trainable_variables)
+                grads = tape.gradient(episode_logs["loss"], self.model.trainable_variables)
                 self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
 
             elif phase == util.TrainingPhase.VAL:
-                _support = next(_data_itr)
-                self.model.set_support(_support)
-                del _support
-
-                _query = next(_data_itr)
-                loss, acc = self.model.apply_query(_query)
+                episode_logs = self.modelManager.compute_episodic_metrics(_data_itr, training=False)
             else:
                 raise NotImplementedError(f"Training phase: {phase} not implemented")
 
             # Track progress
-            # TODO: get metrics automatically
-            self.running_metrics["loss"].update_state(loss)
-            self.running_metrics["accuracy"].update_state(acc)
+            # TODO: get metrics automatically by the NetworkModelManager
+            self.running_metrics["loss"].update_state(episode_logs["loss"])
+            self.running_metrics["accuracy"].update_state(episode_logs["accuracy"])
 
             # update progress
             self.progress.update(1 / total_episodes)
@@ -369,16 +360,12 @@ class FewShotTrainer(Trainer):
 
             _data_itr = iter(self.data_generators[phase])
             for episode_idx in range(self.n_test_episodes):
-                _support = next(_data_itr)
-                self.model.set_support(_support)
-
-                _query = next(_data_itr)
-                loss, acc = self.model.apply_query(_query)
+                episode_logs = self.modelManager.compute_episodic_metrics(_data_itr, training=False)
 
                 # Track progress
                 # TODO: get metrics automatically
-                self.running_metrics["loss"].update_state(loss)
-                self.running_metrics["accuracy"].update_state(acc)
+                self.running_metrics["loss"].update_state(episode_logs["loss"])
+                self.running_metrics["accuracy"].update_state(episode_logs["accuracy"])
 
                 # update progress
                 self.progress.update(1)

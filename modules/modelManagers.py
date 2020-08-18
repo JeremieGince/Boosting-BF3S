@@ -251,15 +251,30 @@ class NetworkModelManager:
         """
         return tf.keras.losses.categorical_crossentropy(y_true, y_pred, **kwargs)
 
-    def compute_metrics(self, *args, **kwargs) -> dict:
+    def compute_batch_metrics(self, *args, **kwargs) -> dict:
         """
         Used to compute the metrics of the current call
         :param args:
         :param kwargs:
         :return:
         """
-        loss, acc = self.model.call(*args, **kwargs)
-        return {"loss": loss, "accuracy": acc}
+        y, y_pred = self.model.call(*args, **kwargs)
+        loss, acc = self.model.compute_batch_loss_acc(y, y_pred)
+        logs = {"loss": loss, "accuracy": acc}
+        # print(y.shape, y_pred.shape, logs)
+        return logs
+
+    def compute_episodic_metrics(self, data_itr, *args, **kwargs):
+        _support = next(data_itr)
+        self.model.set_support(_support)
+
+        _query = next(data_itr)
+        y, y_pred = self.model.apply_query(_query)
+        # print(y.shape, y_pred.shape)
+        loss, acc = self.model.compute_episodic_loss_acc(y, y_pred)
+        logs = {"loss": loss, "accuracy": acc}
+        # print(logs)
+        return logs
 
 
 class NetworkManagerCallback(tf.keras.callbacks.Callback):
