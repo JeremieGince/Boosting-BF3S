@@ -27,7 +27,7 @@ def conv_4_64(input_shape, *args, **kwargs):
             tf.keras.layers.MaxPool2D((2, 2)),
 
             Flatten(dtype=tf.float32)
-        ], name="Conv-4-64"
+        ], name="conv-4-64"
         )
 
 
@@ -52,12 +52,12 @@ def conv_4_64_avg_pool(input_shape, *args, **kwargs):
             tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding='same'),
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.ReLU(),
-        ], name="Conv-4-64"
+        ], name="conv-4-64"
         )
     # print("seq_0.(in, out)_shape", seq_0.input_shape, seq_0.output_shape)
     seq_1 = tf.keras.Sequential([
             tf.keras.layers.AveragePooling2D((2, 2), input_shape=seq_0.output_shape[1:]),
-    ], name="Conv-4-64-avg_pool"
+    ], name="conv-4-64-avg_pool"
     )
     # print("seq_1.(in, out)_shape", seq_1.input_shape, seq_1.output_shape)
     # assert 1 == 0
