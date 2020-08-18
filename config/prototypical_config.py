@@ -51,7 +51,7 @@ config = {
         "n_val_episodes": 100,
         "n_test_episodes": 1,
         "n_epochs": 300,
-        "n_test": 900,
+        "n_test": 2_000,
 
         # optimizer
         "learning_rate": 1e-3,
