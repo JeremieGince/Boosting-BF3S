@@ -70,7 +70,7 @@ class NetworkModelManager:
         self.history_path = f"training_data/{self.name}/cp-history.json"
         self.checkpoint_dir = os.path.dirname(self.checkpoint_path)
         self.history = dict()
-        self.model = None
+        self.model: tf.keras.Model = None
         self.current_epoch = 0
 
         self.load_history()
@@ -92,8 +92,14 @@ class NetworkModelManager:
         self.metrics: dict = {"loss": None}
 
         # others
-        self.teacher_net_manager = kwargs.get("teacher", None)
-        self.init_weights_path = kwargs.get("weights_path", None)
+        self.init_weights_path: str = kwargs.get("weights_path", None)
+
+        # Teaching
+        self.teacher_net_manager: NetworkModelManager = kwargs.get("teacher", None)
+        self.teacher_loss: str = kwargs.get("teacher_loss", "KLB")
+        self.teacher_t: float = kwargs.get("teacher_T", 1.0)
+        self.teacher_loss_fn = lambda p, p_t: tf.losses.kld(p/self.teacher_t, p_t/self.teacher_t)
+        self.teacher_gamma: float = kwargs.get("teacher_gamma", 1.0)
 
     def init_model(self):
         """
@@ -102,7 +108,8 @@ class NetworkModelManager:
         """
         self.build_and_compile()
         if self.init_weights_path is not None and self.current_epoch <= 0:
-            self.model.load_weights(self.init_weights_path),  # skip_mismatch=True
+            assert os.path.exists(self.init_weights_path), f"The path: {self.init_weights_path} doesn't exists"
+            self.model.load_weights(self.init_weights_path, by_name=True),  # , skip_mismatch=True
             self.save_weights()
 
     def summary(self) -> str:
@@ -251,6 +258,15 @@ class NetworkModelManager:
         """
         return tf.keras.losses.categorical_crossentropy(y_true, y_pred, **kwargs)
 
+    def call(self, *args, **kwargs):
+        return self.model.call(*args, **kwargs)
+
+    def set_support(self, support):
+        return self.model.set_support(support)
+
+    def apply_query(self, query):
+        return self.model.apply_query(query)
+
     def compute_batch_metrics(self, *args, **kwargs) -> dict:
         """
         Used to compute the metrics of the current call
@@ -267,11 +283,24 @@ class NetworkModelManager:
     def compute_episodic_metrics(self, data_itr, *args, **kwargs):
         _support = next(data_itr)
         self.model.set_support(_support)
+        if self.teacher_net_manager is not None:
+            self.teacher_net_manager.set_support(_support)
 
         _query = next(data_itr)
         y, y_pred = self.model.apply_query(_query)
+
+        if self.teacher_net_manager is None:
+            loss, acc = self.model.compute_episodic_loss_acc(y, y_pred)
+        else:
+            _, acc = self.model.compute_episodic_loss_acc(y, y_pred)
+            teacher_y, teacher_y_pred = self.teacher_net_manager.apply_query(_query)
+            sl_loss = self.model.compute_sl_loss()
+            teaching_loss = self.teacher_loss_fn(y_pred, teacher_y_pred)
+            print(y_pred, teacher_y_pred, teaching_loss, sl_loss)
+            loss = teaching_loss + self.teacher_gamma * sl_loss
+
         # print(y.shape, y_pred.shape)
-        loss, acc = self.model.compute_episodic_loss_acc(y, y_pred)
+
         logs = {"loss": loss, "accuracy": acc}
         # print(logs)
         return logs
