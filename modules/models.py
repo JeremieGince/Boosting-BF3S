@@ -50,6 +50,9 @@ class FewShot(tf.keras.Model):
     def compute_batch_loss_acc(self, y, y_pred):
         raise NotImplementedError
 
+    def compute_sl_loss(self):
+        raise NotImplementedError
+
 
 class Prototypical(FewShot):
     """
@@ -91,7 +94,12 @@ class Prototypical(FewShot):
         self.n_query = None
 
     def call(self, _inputs, training=None, mask=None):
-        return self.call_proto(*_inputs)
+        y, y_pred = self.call_proto(*_inputs)
+
+        if self.sl_model is not None:
+            self._sl_y, self._sl_y_pred = self.sl_model.call(_inputs)
+
+        return y, y_pred
 
     def set_support(self, support):
         self.n_class = support.shape[0]
@@ -130,21 +138,10 @@ class Prototypical(FewShot):
         dists = util.calc_euclidian_dists(z_query, self.z_prototypes)
 
         # log softmax of calculated distances
-        log_p_y = tf.nn.log_softmax(-dists, axis=-1)
+        p_y = -tf.cast(dists, tf.float32)
+        log_p_y = tf.nn.log_softmax(p_y, axis=-1)
         log_p_y = tf.reshape(log_p_y, [self.n_class, n_query, -1])
         return y, log_p_y
-
-        loss_few = -tf.reduce_mean(
-            tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, tf.cast(log_p_y, tf.float32)), axis=-1), [-1]))
-        eq = tf.cast(
-            tf.equal(
-                tf.cast(tf.argmax(log_p_y, axis=-1), tf.int32),
-                tf.cast(y, tf.int32)
-            ), tf.float32
-        )
-        acc_few = tf.reduce_mean(eq)
-
-        return loss_few, acc_few
 
     def call_proto(self, support, query):
         n_class = support.shape[0]
@@ -182,6 +179,9 @@ class Prototypical(FewShot):
         return y, log_p_y
 
     def compute_batch_loss_acc(self, y, y_pred):
+        raise NotImplementedError
+
+    def compute_episodic_loss_acc(self, y, y_pred):
         y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
 
         loss_few = -tf.reduce_mean(
@@ -195,21 +195,22 @@ class Prototypical(FewShot):
         )
         acc_few = tf.reduce_mean(eq)
 
-        return loss_few, acc_few
+        sl_loss = self.compute_sl_loss()
+        return loss_few + self.alpha * sl_loss, acc_few
 
-    def compute_episodic_loss_acc(self, y, y_pred):
-        loss_few, acc_few = self.compute_batch_loss_acc(y, y_pred)
-
+    def compute_sl_loss(self):
         if self.sl_model is None:
-            return loss_few, acc_few
+            sl_loss = 0.0
         else:
             self.sl_query_loss, _ = self.sl_model.compute_loss_by_inputs(self.query)
             if len(self.sl_query_loss.shape) == 0:
                 sl_loss = (self.sl_support_loss * self.n_support + self.sl_query_loss * self.n_query) / (
                         self.n_support + self.n_query)
             else:
-                sl_loss = tf.reduce_mean(tf.concat([self.sl_support_loss, self.sl_query_loss], axis=0))
-            return loss_few + self.alpha * sl_loss, acc_few
+                sl_loss = tf.reduce_mean(tf.concat(
+                    [tf.squeeze(self.sl_support_loss), tf.squeeze(self.sl_query_loss)],
+                    axis=0))
+        return sl_loss
 
 
 class CosineClassifier(FewShot):
@@ -342,7 +343,8 @@ class CosineClassifier(FewShot):
         similarity = util.calc_cosine_similarity(z_query, self.z_prototypes)
 
         # log softmax of calculated distances
-        log_p_y = tf.nn.log_softmax(self.scale_cls * similarity, axis=-1)
+        p_y = self.scale_cls * similarity
+        log_p_y = tf.nn.log_softmax(p_y, axis=-1)
         log_p_y = tf.reshape(log_p_y, [self.n_class, n_query, -1])
         return y, log_p_y
 
@@ -363,8 +365,12 @@ class CosineClassifier(FewShot):
         )
         acc_few = tf.reduce_mean(eq)
 
+        sl_loss = self.compute_sl_loss()
+        return loss_few + self.alpha * sl_loss, acc_few
+
+    def compute_sl_loss(self):
         if self.sl_model is None:
-            return loss_few, acc_few
+            sl_loss = 0.0
         else:
             self.sl_query_loss, _ = self.sl_model.compute_loss_by_inputs(self.query)
             if len(self.sl_query_loss.shape) == 0:
@@ -372,7 +378,7 @@ class CosineClassifier(FewShot):
                         self.n_support + self.n_query)
             else:
                 sl_loss = tf.reduce_mean(tf.concat([self.sl_support_loss, self.sl_query_loss], axis=0))
-            return loss_few + self.alpha * sl_loss, acc_few
+        return sl_loss
 
 
 #####################################################################################################
@@ -397,6 +403,9 @@ class SelfLearningModel(tf.keras.Model):
 
     def compute_batch_loss_acc(self, y, y_pred):
         raise NotImplementedError
+
+    def compute_loss_by_inputs(self, inputs, training=None, mask=None):
+        return self.compute_batch_loss_acc(*self.call(inputs, training, mask))
 
 
 class SLRotationModel(SelfLearningModel):
@@ -482,9 +491,6 @@ class SLRotationModel(SelfLearningModel):
         acc = tf.reduce_mean(sl_eq)
         return loss, acc
 
-    def compute_loss_by_inputs(self, inputs, training=None, mask=None):
-        return self.compute_batch_loss_acc(*self.call(inputs, training, mask))
-
     def _get_sl_set_args(self, _set):
         *_batch_dim, _w, _h, _c = _set.shape
 
@@ -527,8 +533,7 @@ class SLDistFeatModel(SelfLearningModel):
             raise ValueError(f"feat_dist_mth ({self._feat_dist}) is not a recognizable dist")
 
     def call(self, inputs, training=None, mask=None):
-        _in, *_ = inputs
-        x = self._get_sl_set_args(_in)
+        x = self._get_sl_set_args(inputs)
 
         # y_pred = self._cls(self.backbone(x))
         #
@@ -545,13 +550,13 @@ class SLDistFeatModel(SelfLearningModel):
 
         # return loss, acc
         x_feats = self.backbone(x)
-        # print(f"_in.shape: {_in.shape}")
+        # print(f"_in.shape: {inputs.shape}")
         # print(f"x.shape: {x.shape}")
         # print(f"x_feats.shape: {x_feats.shape}")
         x_feats_k = tf.split(x_feats, self.nb_k, axis=0)
         # print(f"x_feats_k.shape: {[t.shape for t in x_feats_k]}")
-        print(*x_feats_k, sep='\n')
-        return x_feats_k
+        y, *y_rot = x_feats_k
+        return y, y_rot
 
     def _get_sl_set_args(self, _set):
         *_batch_dim, _w, _h, _c = _set.shape
