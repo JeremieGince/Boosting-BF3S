@@ -275,11 +275,15 @@ class NetworkManagerCallback(tf.keras.callbacks.Callback):
             base parameters
             :param verbose: print stats if True. (bool)
             :param save_freq: The saving frequency (in epoch) of the model. (int)
-            :param
 
             EarlyStopping parameters
+            :param early_stopping: Enable early stopping if True. (bool)
+            :param patience: Patience in epoch of the early stopping. (int)
 
             Learning rate decay
+            :param learning_rate_decay_enabled: Enable learning rate decay if True. (bool)
+            :param learning_rate_decay_factor: The learning rate decay applied every step. (float)
+            :param learning_rate_decay_freq: learning rate decay frequency in epoch. (int)
 
         }
         """
@@ -335,6 +339,34 @@ class SelfLearnerWithImgRotation(NetworkModelManager):
     default_backbone = "conv-4-64"
 
     def __init__(self, **kwargs):
+        """
+        Constructor of SelfLearnerWithImgRotation
+        :param kwargs: a dict of parameters (dict){
+
+            :param name: a string of the name of the network manage (str). This name is also used for the name of
+            the directory that will contained all the data about this network.
+
+            Optimizer parameters
+            :param learning_rate: The learning of the optimizer. (float)
+            :param momentum: The momentum of the optimizer. (float)
+            :param use_nesterov: For SGD optimizer, use nesterov if True. (bool)
+            :param optimizer_args: arguments to pass to the optimizer. (dict)
+            :param optimizer: The type of the optimizer. (tensorflow.keras.optimizers)
+
+            Others
+            :param output_form: The ouput form of the network (util.OutputForm)
+            :param teacher: The teacher of the current model.
+            :param weights_path: The path of the initial weights for the model. (str)
+
+            :param image_size: size of the input images. (int)
+            :param backbone: The name of the backbone. Must be in NetworkModelManager.available_backbones. (str)
+            :param backbones_args: Arguments of the given backbone fir its initialization. (dict)
+            :param backbones_kwargs: Arguments of the given backbone fir its initialization. (dict)
+
+            Self learning params
+            :param sl_type: Type of the self-learning model. (util.SLBoostedType)
+        }
+        """
         super().__init__(**kwargs)
         self.img_size = kwargs.get("image_size", 84)
         self.output_form = util.OutputForm.ROT
@@ -374,6 +406,37 @@ class FewShotImgLearner(NetworkModelManager):
         CosineNet = 1
 
     def __init__(self, **kwargs):
+        """
+        Constructor of FewShotImgLearner
+        :param kwargs: a dict of parameters (dict){
+
+            :param name: a string of the name of the network manage (str). This name is also used for the name of
+            the directory that will contained all the data about this network.
+
+            Optimizer parameters
+            :param learning_rate: The learning of the optimizer. (float)
+            :param momentum: The momentum of the optimizer. (float)
+            :param use_nesterov: For SGD optimizer, use nesterov if True. (bool)
+            :param optimizer_args: arguments to pass to the optimizer. (dict)
+            :param optimizer: The type of the optimizer. (tensorflow.keras.optimizers)
+
+            Others
+            :param output_form: The ouput form of the network (util.OutputForm)
+            :param teacher: The teacher of the current model.
+            :param weights_path: The path of the initial weights for the model. (str)
+
+            :param image_size: size of the input images. (int)
+            :param channels: number of channels for the input images. (int)
+            :param backbone: The name of the backbone. Must be in NetworkModelManager.available_backbones. (str)
+            :param backbones_args: Arguments of the given backbone fir its initialization. (dict)
+            :param backbones_kwargs: Arguments of the given backbone fir its initialization. (dict)
+
+            Few shot learning params
+            :param method: Type of the few-shot learning model. (FewShotImgLearner.Method)
+            :param sl_boosted_type: Type of the self-learning auxiliary task. (util.SLBoostedType)
+            :param sl_kwargs: Arguments of the self-learning add on. (dict)
+        }
+        """
         super().__init__(**kwargs)
 
         self.img_size = kwargs.get("image_size", 84)

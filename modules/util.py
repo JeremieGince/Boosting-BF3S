@@ -1,40 +1,16 @@
 import enum
 
 
-def plotHistory_old(history: dict, **kwargs):
-    import os
-    import matplotlib.pyplot as plt
-    # print(history.keys())
-    acc = history['accuracy']
-    val_acc = history.get('val_accuracy')
-
-    loss = history['loss']
-    val_loss = history.get('val_loss')
-
-    epochs_range = range(1, len(acc)+1)
-
-    plt.figure(figsize=(10, 12))
-    plt.subplot(1, 2, 1)
-    plt.plot(epochs_range, acc, label='Training Accuracy')
-    if val_acc is not None:
-        plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-    plt.legend(loc='lower right')
-    plt.title(f'Training {"and Validation" if val_acc is not None else ""} Accuracy')
-
-    plt.subplot(1, 2, 2)
-    plt.plot(epochs_range, loss, label='Training Loss')
-    if val_loss is not None:
-        plt.plot(epochs_range, val_loss, label='Validation Loss')
-    plt.legend(loc='upper right')
-    plt.title(f'Training {"and Validation" if val_loss is not None else ""} Loss')
-
-    if kwargs.get("savefig", True):
-        os.makedirs("Figures/", exist_ok=True)
-        plt.savefig(f"Figures/{kwargs.get('savename', 'training_curve')}.png", dpi=500)
-    plt.show()
-
-
-def plotHistory(history: dict, **kwargs):
+def plotHistory(history: dict, **kwargs) -> None:
+    """
+    Plot the given history.
+    :param history: The history logs to plot. (dict)
+    :param kwargs: The parameters {
+        :param savename: The name for the saving. (str)
+        :param savefig: Save the history plot if True. (bool)
+    }
+    :return: None
+    """
     import os
     import matplotlib.pyplot as plt
 
@@ -65,6 +41,11 @@ def plotHistory(history: dict, **kwargs):
 
 
 def load_pickle_data(file):
+    """
+    Load data from a pickle file.
+    :param file: The data file path. (str)
+    :return: The data in the given file.
+    """
     import pickle
 
     with open(file, "rb") as fo:
@@ -79,6 +60,11 @@ def load_pickle_data(file):
 
 
 def data_generator_from_pickle(filename):
+    """
+    Return a generator from a pickle file.
+    :param filename: The filename. (str)
+    :return: generator of data. tuple(idx, (data, label))
+    """
     meta = load_pickle_data(filename)
     print(meta.keys())
     print(len(meta["data"]))

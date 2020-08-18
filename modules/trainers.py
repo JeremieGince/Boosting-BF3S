@@ -8,12 +8,23 @@ import modules.util as util
 
 
 class Trainer:
+    """
+    The base trainer class. Used to train a model of a NetworkModelManager.
+    """
     def __init__(self,
                  model_manager: NetworkModelManager,
                  dataset: DatasetBase,
                  network_callback: NetworkManagerCallback = None,
                  network_callback_args=None,
                  **kwargs):
+        """
+
+        :param model_manager:
+        :param dataset:
+        :param network_callback:
+        :param network_callback_args:
+        :param kwargs:
+        """
 
         # setting phases
         self.TRAINING_PHASES = [util.TrainingPhase.TRAIN, util.TrainingPhase.VAL]
