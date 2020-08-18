@@ -5,7 +5,7 @@ way = 30
 t_way = 5
 shot = 5
 t_shot = 5
-backbone = "conv-4-64_avg_pool"
+backbone = "conv-4-64"
 
 batch_epochs = 300
 
@@ -21,7 +21,7 @@ config = {
     "Model_parameters": {
         "name": f"cosine-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
-                f"_25",
+                f"_26",
         "method": FewShotImgLearner.Method.CosineNet,
         "backbone": backbone,
         "alpha": None,
