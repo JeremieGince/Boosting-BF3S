@@ -429,8 +429,7 @@ class SLRotationModel(tf.keras.Model):
             raise ValueError(f"{self._classifier_type} is not a recognizable classifier type")
 
     def call(self, inputs, training=None, mask=None):
-        _in, *_ = inputs
-        sl_x, sl_y = self._get_sl_set_args(_in)
+        sl_x, sl_y = self._get_sl_set_args(inputs)
 
         sl_y_pred = self._cls(self.backbone(sl_x))
 
@@ -451,7 +450,8 @@ class SLRotationModel(tf.keras.Model):
         *_batch_dim, _w, _h, _c = _set.shape
 
         _set_reshape = tf.reshape(_set, shape=[np.prod(_batch_dim), _w, _h, _c])
-
+        # print(_set.shape, _batch_dim, _set_reshape.shape)
+        # assert 1 == 0
         sl_y_r = np.random.choice(self.possible_k, _set_reshape.shape[0])
         sl_x = tf.map_fn(lambda _i: tf.image.rot90(_set_reshape[_i], sl_y_r[_i]),
                          tf.range(_set_reshape.shape[0]), dtype=tf.float32)
