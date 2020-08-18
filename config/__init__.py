@@ -1,0 +1,8 @@
+import config.prototypical_config
+import config.prototypical_rotation_config
+import config.cosine_config
+import config.cosine_rotation_config
+import config.selflearning_rot_config
+import config.selflearning_rotFeat_config
+import config.prototypical_rotFeat_config
+
