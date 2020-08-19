@@ -296,7 +296,7 @@ class NetworkModelManager:
             teacher_y, teacher_y_pred = self.teacher_net_manager.apply_query(_query)
             sl_loss = self.model.compute_sl_loss()
             teaching_loss = self.teacher_loss_fn(y_pred, teacher_y_pred)
-            print(y_pred, teacher_y_pred, teaching_loss, sl_loss)
+            # print(y_pred, teacher_y_pred, teaching_loss, sl_loss)
             loss = teaching_loss + self.teacher_gamma * sl_loss
 
         # print(y.shape, y_pred.shape)
