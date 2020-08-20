@@ -336,9 +336,9 @@ class FewShotTrainer(Trainer):
             self.progress.set_postfix_str(f"episode: {episode_idx}/{self.n_training_episodes[phase]} -> "
                                           + ' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
                                                        for k, v in self.running_metrics.items()]))
-            print()
 
         phase_logs = {k: v.result().numpy() for k, v in self.running_metrics.items()}
+        print(phase_logs)
 
         return phase_logs
 
