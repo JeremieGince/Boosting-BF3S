@@ -9,7 +9,7 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.losses import binary_crossentropy
 
 import modules.util as util
-from modules.models import Prototypical, SLRotationModel, CosineClassifier, get_sl_model, BaseModel
+from modules.models import Prototypical, SLRotationModel, CosineClassifier, get_sl_model, BaseModel, Gen0
 import modules.backbones as backbones
 
 os.environ["PATH"] += os.pathsep + r'C:\Program Files (x86)\Graphviz2.38\bin/'
@@ -287,9 +287,21 @@ class NetworkModelManager:
         :return:
         """
         y, y_pred = self.model.call(*args, **kwargs)
-        loss, acc = self.model.compute_batch_loss_acc(y, y_pred)
-        logs = {"loss": loss, "accuracy": acc}
-        # print(y.shape, y_pred.shape, logs)
+
+        if self.teacher_net_manager is None:
+            logs = self.model.compute_batch_logs(y, y_pred)
+        else:
+            epi_logs = self.model.compute_batch_logs(y, y_pred)
+            sl_loss = epi_logs.get("sl_loss", 0.0)
+            acc = epi_logs.get("accuracy", 0.0)
+
+            teacher_y, teacher_y_pred = self.teacher_net_manager.call(*args, **kwargs)
+            teaching_loss = self.teacher_loss_fn(teacher_y_pred, y_pred)
+            # print(y_pred, teacher_y_pred)
+            # print(teaching_loss, sl_loss)
+            loss = teaching_loss + self.teacher_gamma * sl_loss
+            logs = {"loss": loss, "accuracy": acc, "T_"+self.teacher_loss: teaching_loss, "sl_loss": sl_loss}
+
         return logs
 
     def compute_episodic_metrics(self, data_itr, *args, **kwargs):
@@ -302,8 +314,7 @@ class NetworkModelManager:
         y, y_pred = self.model.apply_query(_query)
 
         if self.teacher_net_manager is None:
-            loss, acc = self.model.compute_episodic_loss_acc(y, y_pred)
-            logs = {"loss": loss, "accuracy": acc}
+            logs = self.model.compute_episodic_logs(y, y_pred)
         else:
             epi_logs = self.model.compute_episodic_logs(y, y_pred)
             sl_loss = epi_logs.get("sl_loss", 0.0)
@@ -463,6 +474,7 @@ class FewShotImgLearner(NetworkModelManager):
     class Method(enum.Enum):
         PrototypicalNet = 0,
         CosineNet = 1
+        Gen0 = 2
 
     def __init__(self, **kwargs):
         """
@@ -519,6 +531,7 @@ class FewShotImgLearner(NetworkModelManager):
         self._methods_to_build = {
             FewShotImgLearner.Method.PrototypicalNet: self._build_proto_net,
             FewShotImgLearner.Method.CosineNet: self._build_cosine_net,
+            FewShotImgLearner.Method.Gen0: self._build_gen0
         }
 
         self.sl_add_on: util.SLBoostedType = kwargs.get("sl_boosted_type", None)
@@ -558,6 +571,22 @@ class FewShotImgLearner(NetworkModelManager):
             c=self.channels,
             backbone_net=backbone_net,
             sl_model=sl_model,
+            **self.kwargs
+        )
+
+        return self.model
+
+    def _build_gen0(self):
+        import logging
+        tf.get_logger().setLevel(logging.ERROR)
+
+        backbone_net = self.available_backbones.get(self._backbone)(**self._backbone_args, **self._backbone_kwargs)
+
+        self.model = Gen0(
+            w=self.img_size,
+            h=self.img_size,
+            c=self.channels,
+            backbone_net=backbone_net,
             **self.kwargs
         )
 
