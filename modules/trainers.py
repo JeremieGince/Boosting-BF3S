@@ -73,8 +73,7 @@ class Trainer:
         }
 
         # Setting metrics
-        # TODO: get the metrics from ModelManager
-        self.running_metrics = {_metric: tf.keras.metrics.Mean() for _metric in ["loss", "accuracy"]}
+        self.running_metrics = {_metric: tf.keras.metrics.Mean() for _metric in self.modelManager.metrics}
 
         # progress bar
         self.progress = None
@@ -93,7 +92,7 @@ class Trainer:
         history = {
             _p.value: {
                 _metric: []
-                for _metric in self.running_metrics.keys()  # TODO: get metrics from modelManager
+                for _metric in self.running_metrics.keys()
             }
             for _p in self.TRAINING_PHASES
         }
@@ -175,9 +174,7 @@ class Trainer:
                 raise NotImplementedError(f"Training phase: {phase} not implemented")
 
             # Track progress
-            # TODO: get metrics automatically
-            self.running_metrics["loss"].update_state(batch_logs["loss"])
-            self.running_metrics["accuracy"].update_state(batch_logs["accuracy"])
+            self.update_running_metrics(batch_logs)
 
             # update progress
             self.progress.update(1 / total_episodes)
@@ -189,7 +186,17 @@ class Trainer:
 
         return phase_logs
 
-    def test(self, n=1):
+    def update_running_metrics(self, logs: dict):
+        """
+        Update the current state of the running metrics with a logs dict.
+        :param logs: a dictionary with the new value for each metric. (dict)
+        :return: None
+        """
+        for m in self.running_metrics:
+            if m in logs:
+                self.running_metrics[m].update_state(logs[m])
+
+    def test(self, n=1) -> dict:
         if self.load_on_start:
             self.modelManager.load()
 
@@ -214,9 +221,7 @@ class Trainer:
             batch_logs = self.modelManager.compute_batch_metrics(_inputs, training=False)
 
             # Track progress
-            # TODO: get metrics automatically by the NetworkModelManager
-            self.running_metrics["loss"].update_state(batch_logs["loss"])
-            self.running_metrics["accuracy"].update_state(batch_logs["accuracy"])
+            self.update_running_metrics(batch_logs)
 
             # update progress
             self.progress.update(1)
@@ -324,15 +329,14 @@ class FewShotTrainer(Trainer):
                 raise NotImplementedError(f"Training phase: {phase} not implemented")
 
             # Track progress
-            # TODO: get metrics automatically by the NetworkModelManager
-            self.running_metrics["loss"].update_state(episode_logs["loss"])
-            self.running_metrics["accuracy"].update_state(episode_logs["accuracy"])
+            self.update_running_metrics(episode_logs)
 
             # update progress
             self.progress.update(1 / total_episodes)
             self.progress.set_postfix_str(f"episode: {episode_idx}/{self.n_training_episodes[phase]} -> "
                                           + ' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
                                                        for k, v in self.running_metrics.items()]))
+            print()
 
         phase_logs = {k: v.result().numpy() for k, v in self.running_metrics.items()}
 
@@ -363,9 +367,7 @@ class FewShotTrainer(Trainer):
                 episode_logs = self.modelManager.compute_episodic_metrics(_data_itr, training=False)
 
                 # Track progress
-                # TODO: get metrics automatically
-                self.running_metrics["loss"].update_state(episode_logs["loss"])
-                self.running_metrics["accuracy"].update_state(episode_logs["accuracy"])
+                self.update_running_metrics(episode_logs)
 
                 # update progress
                 self.progress.update(1)
