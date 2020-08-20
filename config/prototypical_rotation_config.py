@@ -25,7 +25,7 @@ config = {
         "name": f"prototypical_rot-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
                 # f"_alpha100e-2_Adam1e-3"
-                f"_c",
+                f"",
         "method": FewShotImgLearner.Method.PrototypicalNet,
         "alpha": 1.00,
         "sl_boosted_type": util.SLBoostedType.ROT,
