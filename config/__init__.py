@@ -11,7 +11,7 @@ available_mth = {
 }
 
 
-def get_config(config_name: str):
+def get_opt(config_name: str):
     _error_av_name: str = f"The method {config_name} is not available. \n" \
                           f"The available methods are: \n {available_mth}."
     assert config_name in available_mth, _error_av_name

@@ -19,7 +19,7 @@ if __name__ == '__main__':
         data_dir = r"D:\Datasets\mini-imagenet"
         _mth = "Gen0"
 
-    opt = config.get_config(_mth)
+    opt = config.get_opt(_mth)
     opt["Dataset_parameters"]["data_dir"] = data_dir
     # opt["Model_parameters"]["name"] = opt["Model_parameters"]["name"]+f"{'_c' if cerebus else ''}"
 
