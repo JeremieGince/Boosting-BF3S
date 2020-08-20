@@ -345,7 +345,7 @@ class CosineClassifier(FewShot):
         if self.sl_model is None:
             return loss_few, acc_few
         else:
-            sl_loss, sl_acc = self.sl_model.compute_loss_acc(self._sl_y, self._sl_y_pred)
+            sl_loss, sl_acc = self.sl_model.compute_batch_loss_acc(self._sl_y, self._sl_y_pred)
             return loss_few + self.alpha * sl_loss, acc_few
 
     def compute_batch_logs(self, y, y_pred) -> dict:
