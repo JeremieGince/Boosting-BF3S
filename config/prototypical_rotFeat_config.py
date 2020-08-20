@@ -11,7 +11,7 @@ shot = 5
 t_shot = 5
 
 backbone = "conv-4-64"
-feat_dist_mth = "l2"
+feat_dist_mth = "cosine"
 
 
 config = {
@@ -27,7 +27,7 @@ config = {
     "Model_parameters": {
         "name": f"prototypical_rotFeat-{backbone}-{feat_dist_mth}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
-                f"_0",
+                f"_1t",
         "method": FewShotImgLearner.Method.PrototypicalNet,
         "alpha": 1.00,
 
@@ -39,10 +39,10 @@ config = {
 
         # Teaching parameters
         "teacher": teacher_config["model_type"](**teacher_config["Model_parameters"]),
-        "weights_path": "training_data/"+teacher_config["Model_parameters"]["name"]+"_c/"
+        "weights_path": "training_data/"+teacher_config["Model_parameters"]["name"]
                         + SelfLearnerWithImgRotation.WEIGHTS_PATH_EXT,
-        "teacher_loss": "KLB",
-        "teacher_T": 1.0,
+        "teacher_loss": "klb",
+        "teacher_T": 4.0,
         "teacher_gamma": 1.0,
     },
 
@@ -63,12 +63,17 @@ config = {
         "n_test_way": t_way,
         "n_shot": shot,
         "n_test_shot": t_shot,
-        "n_query": 15,
+        "n_query": 5,
         "n_test_query": 5,
-        "n_train_episodes": 100,
-        "n_val_episodes": 100,
+        "n_train_episodes": 1,
+        "n_val_episodes": 1,
         "n_test_episodes": 1,
         "n_epochs": 300,
         "n_test": 2_000,
+
+        # optimizer
+        "learning_rate": 1e-3,
+        "optimizer_args": {},
+        "optimizer": tf.keras.optimizers.Adam,
     }
 }
