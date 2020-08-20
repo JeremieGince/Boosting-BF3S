@@ -9,7 +9,7 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.losses import binary_crossentropy
 
 import modules.util as util
-from modules.models import Prototypical, SLRotationModel, CosineClassifier, get_sl_model
+from modules.models import Prototypical, SLRotationModel, CosineClassifier, get_sl_model, BaseModel
 import modules.backbones as backbones
 
 os.environ["PATH"] += os.pathsep + r'C:\Program Files (x86)\Graphviz2.38\bin/'
@@ -38,6 +38,8 @@ class NetworkModelManager:
     }
 
     WEIGHTS_PATH_EXT = "/cp-weights.h5"
+
+    available_metrics = {"loss", "accuracy"}
 
     def __init__(self, **kwargs):
         """
@@ -70,7 +72,7 @@ class NetworkModelManager:
         self.history_path = f"training_data/{self.name}/cp-history.json"
         self.checkpoint_dir = os.path.dirname(self.checkpoint_path)
         self.history = dict()
-        self.model: tf.keras.Model = None
+        self.model: BaseModel = None
         self.current_epoch = 0
 
         self.load_history()
@@ -89,17 +91,27 @@ class NetworkModelManager:
         self.optimizer = kwargs.get("optimizer", SGD)(self.learning_rate, **self.optimizer_args)
 
         # metrics
-        self.metrics: dict = {"loss": None}
+        self.metrics: list = kwargs.get("metrics", ["loss", "accuracy"])
+        assert all([m in NetworkModelManager.available_metrics for m in self.metrics]), "Unavailable metrics"
 
         # others
         self.init_weights_path: str = kwargs.get("weights_path", None)
 
         # Teaching
         self.teacher_net_manager: NetworkModelManager = kwargs.get("teacher", None)
-        self.teacher_loss: str = kwargs.get("teacher_loss", "KLB")
-        self.teacher_t: float = kwargs.get("teacher_T", 1.0)
-        self.teacher_loss_fn = lambda p, p_t: tf.losses.kld(p/self.teacher_t, p_t/self.teacher_t)
+        self.teacher_loss: str = kwargs.get("teacher_loss", "klb")
+        self.teacher_t: float = kwargs.get("teacher_T", 4.0)
+        self.teacher_loss_fn = lambda p, p_t: tf.reduce_mean(
+            tf.losses.kullback_leibler_divergence(
+                tf.nn.softmax(p / self.teacher_t), tf.nn.softmax(p_t / self.teacher_t)
+            )
+        )
         self.teacher_gamma: float = kwargs.get("teacher_gamma", 1.0)
+
+        if self.teacher_net_manager is not None:
+            self.metrics.append("T_"+self.teacher_loss)
+            if "sl_loss" not in self.metrics:
+                self.metrics.append("sl_loss")
 
     def init_model(self):
         """
@@ -291,17 +303,20 @@ class NetworkModelManager:
 
         if self.teacher_net_manager is None:
             loss, acc = self.model.compute_episodic_loss_acc(y, y_pred)
+            logs = {"loss": loss, "accuracy": acc}
         else:
-            _, acc = self.model.compute_episodic_loss_acc(y, y_pred)
+            epi_logs = self.model.compute_episodic_logs(y, y_pred)
+            sl_loss = epi_logs.get("sl_loss", 0.0)
+            acc = epi_logs.get("accuracy", 0.0)
+
             teacher_y, teacher_y_pred = self.teacher_net_manager.apply_query(_query)
-            sl_loss = self.model.compute_sl_loss()
-            teaching_loss = self.teacher_loss_fn(y_pred, teacher_y_pred)
-            # print(y_pred, teacher_y_pred, teaching_loss, sl_loss)
+            teaching_loss = self.teacher_loss_fn(teacher_y_pred, y_pred)
+            # print(y_pred, teacher_y_pred)
+            # print(teaching_loss, sl_loss)
             loss = teaching_loss + self.teacher_gamma * sl_loss
+            logs = {"loss": loss, "accuracy": acc, "T_"+self.teacher_loss: teaching_loss, "sl_loss": sl_loss}
 
         # print(y.shape, y_pred.shape)
-
-        logs = {"loss": loss, "accuracy": acc}
         # print(logs)
         return logs
 
