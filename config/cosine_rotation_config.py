@@ -3,7 +3,7 @@ from modules.modelManagers import FewShotImgLearner
 from modules import util
 
 
-way = 30
+way = 20
 t_way = 5
 shot = 5
 t_shot = 5
