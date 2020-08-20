@@ -7,12 +7,76 @@ from tensorflow.keras.models import Sequential
 import modules.util as util
 
 
+#####################################################################################################
+#  Base models
+#####################################################################################################
+
 class BaseModel(tf.keras.Model):
     def __init__(self, backbone: tf.keras.Model):
         super(BaseModel, self).__init__()
         self.backbone = backbone
 
+    def call(self, inputs, training=None, mask=None):
+        """
+        Call for batch training
+        :param inputs: The inputs of the model (tf.Tensor)
+        :param training: True if is in training phase else False (bool)
+        :param mask: The mask of the data
+        :return: y, logits (tuple)
+        """
+        raise NotImplementedError
+
     def compute_batch_logs(self, y, y_pred) -> dict:
+        """
+        Compute the logs of the batch.
+        :param y: The truth values of the classification.
+        :param y_pred: The predicted values of the classification or the logits.
+        :return: The logs of the classification batch. ex: {"loss": 4.523, "accuracy": 0.726}
+        """
+        raise NotImplementedError
+
+
+class SelfLearningModel(BaseModel):
+    def __init__(self, backbone):
+        super(SelfLearningModel, self).__init__(backbone)
+        self._sl_input_shape = backbone.output_shape[1:]
+
+    def call(self, inputs, training=None, mask=None):
+        """
+        Call for batch training
+        :param inputs: The inputs of the model (tf.Tensor)
+        :param training: True if is in training phase else False (bool)
+        :param mask: The mask of the data
+        :return: y, logits (tuple)
+        """
+        raise NotImplementedError
+
+    def compute_batch_loss_acc(self, y, y_pred):
+        """
+        Compute the loss and the accuracy of the current batch. (Depreciated -> use compute_batch_logs instead)
+        :param y: The truth values of the classification.
+        :param y_pred: The predicted values of the classification or the logits.
+        :return: (loss, accuracy) (tuple(float or tf.Tensor, float))
+        """
+        raise NotImplementedError
+
+    def compute_loss_by_inputs(self, inputs, training=None, mask=None):
+        """
+        Compute directly the loss for batch training
+        :param inputs: The inputs of the model (tf.Tensor)
+        :param training: True if is in training phase else False (bool)
+        :param mask: The mask of the data
+        :return: loss (float or tf.Tensor)
+        """
+        return self.compute_batch_loss_acc(*self.call(inputs, training, mask))
+
+    def compute_batch_logs(self, y, y_pred):
+        """
+        Compute the logs of the batch.
+        :param y: The truth values of the classification.
+        :param y_pred: The predicted values of the classification or the logits.
+        :return: The logs of the classification batch. ex: {"loss": 4.523, "accuracy": 0.726}
+        """
         raise NotImplementedError
 
 
@@ -24,19 +88,23 @@ class FewShot(BaseModel):
                  # Model parameters
                  backbone_net: tf.keras.Model,
 
-                 # SL bosster
-                 sl_model: tf.keras.Model = None,
+                 # SL for auxiliary loss
+                 sl_model: SelfLearningModel = None,
 
                  # others
                  **kwargs):
         """
         Args:
-            n_support (int): number of support examples.
-            n_query (int): number of query examples.
-            w (int): image width .
-            h (int): image height.
-            c (int): number of channels.
-            backbone_net (tf.keras.Model): the encoder model as backbone.
+            :param w (int): image width .
+            :param h (int): image height.
+            :param c (int): number of channels.
+            :param backbone_net (tf.keras.Model): the encoder model as backbone.
+            :param sl_model (SelfLearningModel): The self-learning model
+            :param kwargs: {
+                :param alpha (float): float value between 0 and 1 used to scale the importance of the auxiliary loss.
+                                      -> loss = main_loss + alpha * aux_loss.
+            }
+
         """
         super(FewShot, self).__init__(backbone_net)
         self.w, self.h, self.c = w, h, c
@@ -46,27 +114,81 @@ class FewShot(BaseModel):
         self.sl_support_loss = None
         self.sl_query_loss = None
 
+    def call(self, inputs, training=None, mask=None):
+        """
+        Call for batch training
+        :param inputs: The inputs of the model (tf.Tensor)
+        :param training: True if is in training phase else False (bool)
+        :param mask: The mask of the data
+        :return: y, logits (tuple)
+        """
+        raise NotImplementedError
+
     def set_support(self, support):
+        """
+        Set the support tensor data for the few-shot classification.
+        :param support: The support tensor in shape: [nb_cls, nb_img, img_size, img_size, nb_channels] or
+                                                    [n-way, n-shot, img_size, img_size, nb_channels]
+        :return: None
+        """
         raise NotImplementedError
 
     def apply_query(self, query) -> tuple:
+        """
+        Apply the query for the classification Task. The support tensor must be set before this call -> see set_support
+        :param query: The query Tensor in shape: [n-way, n-query, img_size, img_size, nb_channels]
+        :return: (y: The truth values of the classification,
+                  y_pred: The predicted values of the classification or the logits). (tuple)
+        """
         raise NotImplementedError
 
     def compute_episodic_loss_acc(self, y, y_pred):
+        """
+        Compute the loss and the accuracy of the current episode. (Depreciated -> use compute_episodic_logs instead)
+        :param y: The truth values of the classification.
+        :param y_pred: The predicted values of the classification or the logits.
+        :return: (loss, accuracy) (tuple(float or tf.Tensor, float))
+        """
         raise NotImplementedError
 
     def compute_batch_logs(self, y, y_pred) -> dict:
+        """
+        Compute the logs of the current batch.
+        :param y: The truth values of the classification.
+        :param y_pred: The predicted values of the classification or the logits.
+        :return: The logs of the classification batch. ex: {"loss": 4.523, "accuracy": 0.726}
+        """
         raise NotImplementedError
 
     def compute_episodic_logs(self, y, y_pred) -> dict:
+        """
+        Compute the logs of the current episode.
+        :param y: The truth values of the classification.
+        :param y_pred: The predicted values of the classification or the logits.
+        :return: The logs of the classification batch. ex: {"loss": 4.523, "accuracy": 0.726}
+        """
         raise NotImplementedError
 
     def compute_batch_loss_acc(self, y, y_pred):
+        """
+        Compute the loss and the accuracy of the current batch. (Depreciated -> use compute_batch_logs instead)
+        :param y: The truth values of the classification.
+        :param y_pred: The predicted values of the classification or the logits.
+        :return: (loss, accuracy) (tuple(float or tf.Tensor, float))
+        """
         raise NotImplementedError
 
     def compute_sl_loss(self):
+        """
+        Compute the loss of the self-learning as auxiliary loss.
+        :return: The loss. (float or tf.Tensor)
+        """
         raise NotImplementedError
 
+
+#####################################################################################################
+#  Few-Shot learning models
+#####################################################################################################
 
 class Prototypical(FewShot):
     """
@@ -76,7 +198,7 @@ class Prototypical(FewShot):
 
     def __init__(self,
                  # inputs parameters
-                 w, h, c,
+                 w: int, h: int, c: int,
 
                  # Model parameters
                  backbone_net: tf.keras.Model,
@@ -87,12 +209,15 @@ class Prototypical(FewShot):
                  # others
                  **kwargs):
         """
-        Args:
-            w (int): image width .
-            h (int): image height.
-            c (int): number of channels.
-            backbone_net (tf.keras.Model): the encoder model as backbone.
-
+        :param w (int): image width .
+        :param h (int): image height.
+        :param c (int): number of channels.
+        :param backbone_net (tf.keras.Model): the encoder model as backbone.
+        :param sl_model (SelfLearningModel): The self-learning model
+        :param kwargs: {
+            :param alpha (float): float value between 0 and 1 used to scale the importance of the auxiliary loss.
+                                  -> loss = main_loss + alpha * aux_loss.
+        }
         """
         super(Prototypical, self).__init__(
             w, h, c,
@@ -271,13 +396,17 @@ class CosineClassifier(FewShot):
                  # others
                  **kwargs):
         """
-        Args:
-            n_support (int): number of support examples.
-            n_query (int): number of query examples.
-            w (int): image width .
-            h (int): image height.
-            c (int): number of channels.
-            backbone_net (tf.keras.Model): the encoder model as backbone.
+        :param w (int): image width .
+        :param h (int): image height.
+        :param c (int): number of channels.
+        :param backbone_net (tf.keras.Model): the encoder model as backbone.
+        :param sl_model (SelfLearningModel): The self-learning model
+        :param kwargs: {
+            :param alpha (float): float value between 0 and 1 used to scale the importance of the auxiliary loss.
+                                  -> loss = main_loss + alpha * aux_loss.
+            :param n_cls_base (int): number of base class.
+            :param n_cls_val (int): number of validation class.
+        }
         """
         super(CosineClassifier, self).__init__(
             w, h, c,
@@ -370,7 +499,7 @@ class CosineClassifier(FewShot):
         if self.sl_model is None:
             sl_loss = 0.0
         else:
-            sl_loss, sl_acc = self.sl_model.compute_loss_acc(self._sl_y, self._sl_y_pred)
+            sl_loss, sl_acc = self.sl_model.compute_batch_loss_acc(self._sl_y, self._sl_y_pred)
 
         loss = loss_few + self.alpha * sl_loss
         logs = {"loss": loss, "accuracy": acc_few, "sl_loss": sl_loss}
@@ -476,10 +605,9 @@ class CosineClassifier(FewShot):
         return sl_loss
 
 
-class ProtoGen0(Prototypical):
+class Gen0(FewShot):
     """
-    Reference: https://github.com/schatty/prototypical-networks-tf/blob/master/prototf/models/prototypical.py
-    Implemenation of Prototypical Network.
+    Reference: https://arxiv.org/pdf/2006.09785.pdf
     """
 
     def __init__(self,
@@ -489,23 +617,23 @@ class ProtoGen0(Prototypical):
                  # Model parameters
                  backbone_net: tf.keras.Model,
 
-                 # SL bosster
-                 sl_model: tf.keras.Model = None,
-
                  # others
                  **kwargs):
         """
-        Args:
-            w (int): image width .
-            h (int): image height.
-            c (int): number of channels.
-            backbone_net (tf.keras.Model): the encoder model as backbone.
-
+        :param w (int): image width .
+        :param h (int): image height.
+        :param c (int): number of channels.
+        :param backbone_net (tf.keras.Model): the encoder model as backbone.
+        :param kwargs: {
+            :param alpha (float): float value between 0 and 1 used to scale the importance of the auxiliary loss.
+                                  -> loss = main_loss + alpha * aux_loss.
+            :param n_cls_base (int): number of base class.
+        }
         """
-        super(ProtoGen0, self).__init__(
+        super(Gen0, self).__init__(
             w, h, c,
             backbone_net,
-            sl_model,
+            None,
             **kwargs
         )
 
@@ -515,13 +643,26 @@ class ProtoGen0(Prototypical):
         self.n_support = None
         self.n_query = None
 
+        self.n_cls_base = kwargs.get("n_cls_base", 64)
+        self.n_cls_val = kwargs.get("n_cls_val", 16)
+        self.nFeat = self.backbone.output_shape[-1]
+
+        self.cls_classifier_base = Dense(self.n_cls_base, input_shape=(self.nFeat, ), name="Dense-cls_classifier_base")
+        self.cls_classifier_val = Dense(self.n_cls_base, input_shape=(self.nFeat,), name="Dense-cls_classifier_val")
+        self.rot_classifier = Dense(4, input_shape=(self.n_cls_base, ), name="Dense-rot_classifier")
+
+        self.sl_p_rot = None
+        self.sl_y_rot = None
+
     def call(self, _inputs, training=None, mask=None):
-        y, y_pred = self.call_proto(*_inputs)
+        x_batch, ids_batch, y_batch = _inputs
+        x_rot, self.sl_y_rot = self.rotate_x_batch(x_batch, [0, 1, 2, 3])
 
-        if self.sl_model is not None:
-            self._sl_y, self._sl_y_pred = self.sl_model.call(_inputs)
+        x_feats = self.backbone(x_rot)
+        p_cls = self.cls_classifier_base(x_feats)
+        self.sl_p_rot = self.rot_classifier(p_cls)
 
-        return y, y_pred
+        return y_batch, p_cls
 
     def set_support(self, support):
         self.n_class = support.shape[0]
@@ -562,64 +703,29 @@ class ProtoGen0(Prototypical):
         p_y = -tf.cast(dists, tf.float32)
         return y, p_y
 
-    def call_proto(self, support, query):
-        n_class = support.shape[0]
-        n_support = support.shape[1]
-        n_query = query.shape[1]
-        y = np.tile(np.arange(n_class)[:, np.newaxis], (1, n_query))
-
-        # correct indices of support samples (just natural order)
-        target_inds = tf.reshape(tf.range(n_class), [n_class, 1])
-        target_inds = tf.tile(target_inds, [1, n_query])
-
-        # merge support and query to forward through encoder
-        cat = tf.concat([
-            tf.reshape(support, [n_class * n_support,
-                                 self.w, self.h, self.c]),
-            tf.reshape(query, [n_class * n_query,
-                               self.w, self.h, self.c])], axis=0)
-        z = self.backbone(cat)
-
-        # Divide embedding into support and query
-        z_prototypes = tf.reshape(z[:n_class * n_support],
-                                  [n_class, n_support, z.shape[-1]])
-        # Prototypes are means of n_support examples
-        z_prototypes = tf.math.reduce_mean(z_prototypes, axis=1)
-        z_query = z[n_class * n_support:]
-
-        # Calculate distances between query and prototypes
-        dists = util.calc_euclidian_dists(z_query, z_prototypes)
-
-        # log softmax of calculated distances
-        p_y = -tf.cast(dists, tf.float32)
-        return y, p_y
-
     def compute_batch_loss_acc(self, y, y_pred):
         raise NotImplementedError
 
     def compute_episodic_loss_acc(self, y, y_pred):
-        y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
+        raise NotImplementedError
 
-        # log softmax of calculated distances
-        log_p_y = tf.nn.log_softmax(y_pred, axis=-1)
-        log_p_y = tf.reshape(log_p_y, [self.n_class, self.n_query, -1])
+    def compute_batch_logs(self, y, y_pred) -> dict:
+        sl_y_pred = tf.nn.softmax(self.sl_p_rot)
+        sl_loss = tf.losses.categorical_crossentropy(self.sl_y_rot, sl_y_pred)
 
-        loss_few = -tf.reduce_mean(
-            tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, tf.cast(log_p_y, tf.float32)), axis=-1), [-1])
-        )
+        soft_y_pred = tf.nn.softmax(y_pred)
+        loss_few = tf.losses.categorical_crossentropy(y, soft_y_pred)
         eq = tf.cast(
             tf.equal(
-                tf.cast(tf.argmax(log_p_y, axis=-1), tf.int32),
-                tf.cast(y, tf.int32)
+                tf.cast(tf.argmax(soft_y_pred, axis=-1), tf.int32),
+                tf.cast(tf.argmax(y, axis=-1), tf.int32)
             ), tf.float32
         )
         acc_few = tf.reduce_mean(eq)
 
-        sl_loss = self.compute_sl_loss()
-        return loss_few + self.alpha * sl_loss, acc_few
-
-    def compute_batch_logs(self, y, y_pred) -> dict:
-        raise NotImplementedError
+        loss = loss_few + self.alpha * sl_loss
+        logs = {"loss": loss, "accuracy": acc_few, "sl_loss": sl_loss}
+        return logs
 
     def compute_episodic_logs(self, y, y_pred) -> dict:
         y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
@@ -628,7 +734,7 @@ class ProtoGen0(Prototypical):
         log_p_y = tf.nn.log_softmax(y_pred, axis=-1)
         log_p_y = tf.reshape(log_p_y, [self.n_class, self.n_query, -1])
 
-        loss_few = -tf.reduce_mean(
+        loss = -tf.reduce_mean(
             tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, tf.cast(log_p_y, tf.float32)), axis=-1), [-1])
         )
         eq = tf.cast(
@@ -639,24 +745,46 @@ class ProtoGen0(Prototypical):
         )
         acc_few = tf.reduce_mean(eq)
 
-        sl_loss = self.compute_sl_loss()
-        loss = loss_few + self.alpha * sl_loss
-        logs = {"loss": loss, "accuracy": acc_few, "sl_loss": sl_loss}
+        logs = {"loss": loss, "accuracy": acc_few}
         return logs
 
     def compute_sl_loss(self):
-        if self.sl_model is None:
-            sl_loss = 0.0
-        else:
-            self.sl_query_loss, _ = self.sl_model.compute_loss_by_inputs(self.query)
-            if len(self.sl_query_loss.shape) == 0:
-                sl_loss = (self.sl_support_loss * self.n_support + self.sl_query_loss * self.n_query) / (
-                        self.n_support + self.n_query)
-            else:
-                sl_loss = tf.reduce_mean(tf.concat(
-                    [tf.squeeze(self.sl_support_loss), tf.squeeze(self.sl_query_loss)],
-                    axis=0))
-        return sl_loss
+        raise NotImplementedError
+
+    def rotate_x_batch(self, x, rotations_k: list = None):
+        """
+
+        :param x:
+        :param rotations_k:
+        :return:
+        """
+        if rotations_k is None:
+            rotations_k = [0, 1, 2, 3]
+
+        *_batch_dim, _w, _h, _c = x.shape
+
+        _x_reshape = tf.reshape(x, shape=[np.prod(_batch_dim), _w, _h, _c])
+        # print(_set.shape, _batch_dim, _set_reshape.shape)
+        # assert 1 == 0
+        x_r = tf.concat(
+            [
+                tf.image.rot90(_x_reshape, k)
+                for k in rotations_k
+            ],
+            axis=0
+        )
+        y_r = tf.concat(
+            [
+                tf.one_hot(
+                    tf.ones((_x_reshape.shape[0],))*k,
+                    len(rotations_k)
+                )
+                for k in rotations_k
+            ],
+            axis=0
+        )
+
+        return x_r, y_r
 
 
 #####################################################################################################
@@ -670,21 +798,6 @@ def get_sl_model(backbone, sl_boosted_type: util.SLBoostedType, **kwargs):
     }
 
     return sl_type_to_cls.get(sl_boosted_type)(backbone, **kwargs) if sl_boosted_type is not None else None
-
-
-class SelfLearningModel(BaseModel):
-    def __init__(self, backbone):
-        super(SelfLearningModel, self).__init__(backbone)
-        self._sl_input_shape = backbone.output_shape[1:]
-
-    def compute_batch_loss_acc(self, y, y_pred):
-        raise NotImplementedError
-
-    def compute_loss_by_inputs(self, inputs, training=None, mask=None):
-        return self.compute_batch_loss_acc(*self.call(inputs, training, mask))
-
-    def compute_batch_logs(self, y, y_pred):
-        raise NotImplementedError
 
 
 class SLRotationModel(SelfLearningModel):
