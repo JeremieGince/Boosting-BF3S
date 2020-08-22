@@ -23,7 +23,6 @@ config = {
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot",
         "method": FewShotImgLearner.Method.CosineNet,
         "backbone": backbone,
-        "alpha": None,
         "sl_kwargs": None,
         "n_cls_base": 64,
         "n_cls_val": 16,

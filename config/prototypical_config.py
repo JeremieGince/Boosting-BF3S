@@ -23,7 +23,6 @@ config = {
         "name": f"prototypical_few_shot-{backbone}_"
                 f"{way}way{shot}shot_{t_way}tway{t_shot}tshot",
         "method": FewShotImgLearner.Method.PrototypicalNet,
-        "alpha": None,
         "sl_kwargs": None,
 
     },
