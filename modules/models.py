@@ -764,6 +764,9 @@ class Gen0(FewShot):
         *_batch_dim, _w, _h, _c = x.shape
 
         _x_reshape = tf.reshape(x, shape=[np.prod(_batch_dim), _w, _h, _c])
+        print(_x_reshape.dtype)
+        _x_reshape = tf.cast(_x_reshape, tf.float32)
+        print(_x_reshape.dtype)
         # print(_set.shape, _batch_dim, _set_reshape.shape)
         # assert 1 == 0
         x_r = tf.concat(
