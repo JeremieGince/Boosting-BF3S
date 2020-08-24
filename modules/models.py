@@ -722,7 +722,7 @@ class Gen0(FewShot):
             ), tf.float32
         )
         acc_few = tf.reduce_mean(eq)
-
+        print(type(loss_few), self.alpha, type(sl_loss))
         loss = loss_few + self.alpha * sl_loss
         logs = {"loss": loss, "accuracy": acc_few, "sl_loss": sl_loss}
         return logs
