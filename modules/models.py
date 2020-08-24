@@ -776,7 +776,7 @@ class Gen0(FewShot):
         y_r = tf.concat(
             [
                 tf.one_hot(
-                    tf.ones((_x_reshape.shape[0],), dtype=tf.int16)*k,
+                    tf.ones((_x_reshape.shape[0],), dtype=tf.int32)*k,
                     len(rotations_k)
                 )
                 for k in rotations_k
