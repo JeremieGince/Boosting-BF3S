@@ -23,7 +23,7 @@ config = {
         "name": f"Gen0-{backbone}"
                 f"_{t_way}tway{t_shot}tshot",
         "method": FewShotImgLearner.Method.Gen0,
-        "alpha": None,
+        "alpha": 1.0,
         "sl_kwargs": None,
         "n_cls_base": 64,
         "n_cls_val": 16,
