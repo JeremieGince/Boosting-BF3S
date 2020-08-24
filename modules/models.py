@@ -764,9 +764,6 @@ class Gen0(FewShot):
         *_batch_dim, _w, _h, _c = x.shape
 
         _x_reshape = tf.reshape(x, shape=[np.prod(_batch_dim), _w, _h, _c])
-        print(_x_reshape.dtype)
-        _x_reshape = tf.cast(_x_reshape, tf.float32)
-        print(_x_reshape.dtype)
         # print(_set.shape, _batch_dim, _set_reshape.shape)
         # assert 1 == 0
         x_r = tf.concat(
@@ -779,7 +776,7 @@ class Gen0(FewShot):
         y_r = tf.concat(
             [
                 tf.one_hot(
-                    tf.ones((_x_reshape.shape[0],))*k,
+                    tf.ones((_x_reshape.shape[0],), dtype=tf.int16)*k,
                     len(rotations_k)
                 )
                 for k in rotations_k
