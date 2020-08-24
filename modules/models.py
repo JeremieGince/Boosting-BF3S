@@ -656,13 +656,13 @@ class Gen0(FewShot):
 
     def call(self, _inputs, training=None, mask=None):
         x_batch, ids_batch, y_batch = _inputs
-        x_rot, self.sl_y_rot = self.rotate_x_batch(x_batch, [0, 1, 2, 3])
+        x_rot, self.sl_y_rot, y_batch_r = self.rotate_x_batch(x_batch, [0, 1, 2, 3], y_batch)
 
         x_feats = self.backbone(x_rot)
         p_cls = self.cls_classifier_base(x_feats)
         self.sl_p_rot = self.rot_classifier(p_cls)
 
-        return y_batch, p_cls
+        return y_batch_r, p_cls
 
     def set_support(self, support):
         self.n_class = support.shape[0]
@@ -751,12 +751,14 @@ class Gen0(FewShot):
     def compute_sl_loss(self):
         raise NotImplementedError
 
-    def rotate_x_batch(self, x, rotations_k: list = None):
+    def rotate_x_batch(self, x, rotations_k: list = None, y=None):
         """
-
-        :param x:
-        :param rotations_k:
-        :return:
+        Execute the rotation of x given the rotations k.
+        :param x: batch data
+        :param rotations_k: The rotation to execute: k=0 -> 0 deg, k=1 -> 90 deg, k=2 -> 180 deg, k=3 -> 270 deg.
+        :param y: batch label
+        :return: The concatenation of [x^k for k in rotations_k], The labels of the rotations in one_hot vectors,
+                 and the y batch concatenate len(rotations_k) times if y is not None.
         """
         if rotations_k is None:
             rotations_k = [0, 1, 2, 3]
@@ -784,7 +786,13 @@ class Gen0(FewShot):
             axis=0
         )
 
-        return x_r, y_r
+        if y is None:
+            return x_r, y_r
+        else:
+            y_batch_r = tf.concat(
+                [y for _ in range(len(rotations_k))]
+            )
+            return x_r, y_r, y_batch_r
 
 
 #####################################################################################################
