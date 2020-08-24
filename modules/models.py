@@ -790,7 +790,8 @@ class Gen0(FewShot):
             return x_r, y_r
         else:
             y_batch_r = tf.concat(
-                [y for _ in range(len(rotations_k))]
+                [y for _ in range(len(rotations_k))],
+                axis=0
             )
             return x_r, y_r, y_batch_r
 
