@@ -710,14 +710,14 @@ class Gen0(FewShot):
         raise NotImplementedError
 
     def compute_batch_logs(self, y, y_pred) -> dict:
-        sl_y_pred = tf.nn.softmax(self.sl_p_rot)
-        sl_loss = tf.losses.categorical_crossentropy(self.sl_y_rot, sl_y_pred)
+        # sl_y_pred = tf.nn.softmax(self.sl_p_rot)
+        sl_loss = tf.losses.categorical_crossentropy(self.sl_y_rot, self.sl_p_rot, from_logits=True)
 
-        soft_y_pred = tf.nn.softmax(y_pred)
-        loss_few = tf.losses.categorical_crossentropy(y, soft_y_pred)
+        # soft_y_pred = tf.nn.softmax(y_pred)
+        loss_few = tf.losses.categorical_crossentropy(y, y_pred, from_logits=True)
         eq = tf.cast(
             tf.equal(
-                tf.cast(tf.argmax(soft_y_pred, axis=-1), tf.int32),
+                tf.cast(tf.argmax(y_pred, axis=-1), tf.int32),
                 tf.cast(tf.argmax(y, axis=-1), tf.int32)
             ), tf.float32
         )

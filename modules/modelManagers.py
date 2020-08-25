@@ -301,7 +301,7 @@ class NetworkModelManager:
             # print(teaching_loss, sl_loss)
             loss = teaching_loss + self.teacher_gamma * sl_loss
             logs = {"loss": loss, "accuracy": acc, "T_"+self.teacher_loss: teaching_loss, "sl_loss": sl_loss}
-        print(logs)
+        # print(logs)
         return logs
 
     def compute_episodic_metrics(self, data_itr, *args, **kwargs):
