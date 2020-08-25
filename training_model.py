@@ -85,7 +85,7 @@ if __name__ == '__main__':
             trainer.train(epochs=params["n_epochs"], final_testing=False)
             if params["n_test"]:
                 results = trainer.test(n=params["n_test"])
-                util.save_test_results(params, results)
+                util.save_test_results(opt, results)
 
             del trainer
 
