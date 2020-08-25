@@ -61,6 +61,7 @@ config = {
             "n_train_episodes": 0,
             "n_val_episodes": 100,
             "n_test_episodes": 1,
+            
             "n_epochs": 300,
             "n_test": 2_000,
 

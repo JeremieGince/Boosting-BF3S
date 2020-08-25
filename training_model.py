@@ -82,5 +82,11 @@ if __name__ == '__main__':
                 network_callback=network_callback,
                 **params,
             )
+            trainer.train(epochs=params["n_epochs"], final_testing=False)
+            if params["n_test"]:
+                results = trainer.test(n=params["n_test"])
+                util.save_test_results(params, results)
+
+            del trainer
 
     util.plotHistory(network_manager.history, savename="training_curve_" + network_manager.name, savefig=not cerebus)
