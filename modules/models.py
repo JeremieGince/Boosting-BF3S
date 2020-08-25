@@ -715,12 +715,16 @@ class Gen0(FewShot):
 
         soft_y_pred = tf.nn.softmax(y_pred)
         loss_few = tf.losses.categorical_crossentropy(y, soft_y_pred)
+        print(y.shape, soft_y_pred.shape)
+        print(y, soft_y_pred)
         eq = tf.cast(
             tf.equal(
                 tf.cast(tf.argmax(soft_y_pred, axis=-1), tf.int32),
                 tf.cast(tf.argmax(y, axis=-1), tf.int32)
             ), tf.float32
         )
+        print(eq.shape, eq, sep='\n')
+        assert 1==0
         acc_few = tf.reduce_mean(eq)
         loss = loss_few + self.alpha * sl_loss
         logs = {"loss": loss, "accuracy": acc_few, "sl_loss": sl_loss}
@@ -765,8 +769,6 @@ class Gen0(FewShot):
         *_batch_dim, _w, _h, _c = x.shape
 
         _x_reshape = tf.reshape(x, shape=[np.prod(_batch_dim), _w, _h, _c])
-        # print(_set.shape, _batch_dim, _set_reshape.shape)
-        # assert 1 == 0
         x_r = tf.concat(
             [
                 tf.image.rot90(_x_reshape, k)
