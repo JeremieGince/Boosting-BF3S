@@ -420,7 +420,6 @@ class MixedTrainer(FewShotTrainer):
                  network_callback: NetworkManagerCallback = None,
                  network_callback_args=None,
                  **kwargs):
-        super(MixedTrainer, self).__init__(model_manager, dataset, network_callback, network_callback_args, **kwargs)
 
         self.gen_trainer_type = kwargs.get(
             "gen_trainer_type",
@@ -429,8 +428,10 @@ class MixedTrainer(FewShotTrainer):
                 util.TrainingPhase.VAL: TrainerType.EpisodicTrainer,
                 util.TrainingPhase.TEST: TrainerType.EpisodicTrainer,
             }
-         )
+        )
 
+        super(MixedTrainer, self).__init__(model_manager, dataset, network_callback, network_callback_args, **kwargs)
+    
     def set_data_generators(self):
         for _p, _t in self.gen_trainer_type.items():
             if _t == TrainerType.BatchTrainer:
