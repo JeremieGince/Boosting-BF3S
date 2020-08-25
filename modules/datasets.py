@@ -69,11 +69,11 @@ class DatasetBase:
         elif output_form == OutputForm.ROT:
             return len(self.possible_rotations)
 
-    def get_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
+    def get_batch_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
         raise NotImplementedError()
 
     def get_iterator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
-        return iter(self.get_generator(phase, output_form, **kwargs))
+        return iter(self.get_batch_generator(phase, output_form, **kwargs))
 
     def get_few_shot_generator(self, _n_way, _n_shot, _n_query,
                                phase: TrainingPhase,
@@ -164,7 +164,7 @@ class MiniImageNetDataset(DatasetBase):
             _data = tf.image.random_flip_left_right(_data)
         return _data
 
-    def get_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
+    def get_batch_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
         _raw_data = util.load_pickle_data(self.phase_to_file.get(phase))
 
         # Convert original data to format [n_classes, n_img, w, h, c]
@@ -264,7 +264,7 @@ class MiniImageNetDataset(DatasetBase):
 
     def __iter__(self):
         # TODO: change ça pour pas que ce soit juste train
-        return self.get_generator(TrainingPhase.TRAIN)
+        return self.get_batch_generator(TrainingPhase.TRAIN)
 
 
 if __name__ == '__main__':

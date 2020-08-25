@@ -1,10 +1,16 @@
 import tensorflow as tf
 from tqdm import tqdm
 import numpy as np
-
+import enum
 from modules.datasets import DatasetBase
 from modules.modelManagers import NetworkModelManager, NetworkManagerCallback
 import modules.util as util
+
+
+class TrainerType(enum.Enum):
+    BatchTrainer = 0
+    EpisodicTrainer = 1
+    MixedTrainer = 2
 
 
 class Trainer:
@@ -80,7 +86,7 @@ class Trainer:
 
     def set_data_generators(self):
         self.data_generators = {
-            _p: self.dataset.get_generator(_p, self.modelManager.output_form)
+            _p: self.dataset.get_batch_generator(_p, self.modelManager.output_form)
             for _p in util.TrainingPhase
         }
         return self.data_generators
@@ -253,7 +259,12 @@ class Trainer:
 
 
 class FewShotTrainer(Trainer):
-    def __init__(self, model_manager: NetworkModelManager, dataset: DatasetBase, **kwargs):
+    def __init__(self,
+                 model_manager: NetworkModelManager,
+                 dataset: DatasetBase,
+                 network_callback: NetworkManagerCallback = None,
+                 network_callback_args=None,
+                 **kwargs):
         self.n_way = kwargs.get("n_way", 30)
         self.n_test_way = kwargs.get("n_test_way", self.n_way)
         self.n_shot = kwargs.get("n_shot", 5)
@@ -288,7 +299,7 @@ class FewShotTrainer(Trainer):
             },
         }
 
-        super().__init__(model_manager, dataset, **kwargs)
+        super().__init__(model_manager, dataset, network_callback, network_callback_args, **kwargs)
 
     def set_data_generators(self):
         self.data_generators = {
@@ -401,6 +412,120 @@ class FewShotTrainer(Trainer):
                   f"\t Val: {self.n_test_way}-way {self.n_test_shot}-shot \n" \
                   f"\t Test: {self.n_test_way}-way {self.n_test_shot}-shot \n \n"
         return _config
+
+
+class MixedTrainer(FewShotTrainer):
+    def __init__(self, model_manager: NetworkModelManager,
+                 dataset: DatasetBase,
+                 network_callback: NetworkManagerCallback = None,
+                 network_callback_args=None,
+                 **kwargs):
+        super(MixedTrainer, self).__init__(model_manager, dataset, network_callback, network_callback_args, **kwargs)
+
+        self.gen_trainer_type = kwargs.get(
+            "gen_trainer_type",
+            {
+                util.TrainingPhase.TRAIN: TrainerType.BatchTrainer,
+                util.TrainingPhase.VAL: TrainerType.EpisodicTrainer,
+                util.TrainingPhase.TEST: TrainerType.EpisodicTrainer,
+            }
+         )
+
+    def set_data_generators(self):
+        for _p, _t in self.gen_trainer_type.items():
+            if _t == TrainerType.BatchTrainer:
+                self.data_generators[_p] = self.dataset.get_batch_generator(_p, self.modelManager.output_form)
+            elif _t == TrainerType.EpisodicTrainer:
+                self.data_generators[_p] = self.dataset.get_few_shot_generator(
+                    _n_way=self.phase_to_few_shot_params[_p]["way"],
+                    _n_shot=self.phase_to_few_shot_params[_p]["shot"],
+                    _n_query=self.phase_to_few_shot_params[_p]["query"],
+                    phase=_p,
+                    output_form=self.modelManager.output_form,
+                )
+            elif _t == TrainerType.MixedTrainer:
+                raise ValueError()
+            else:
+                raise ValueError()
+        return self.data_generators
+
+    def get_logs(self, phase: util.TrainingPhase, data_itr, training=True):
+        if self.gen_trainer_type[phase] == TrainerType.BatchTrainer:
+            logs = self.modelManager.compute_batch_metrics(next(data_itr), training=training)
+        elif self.gen_trainer_type[phase] == TrainerType.EpisodicTrainer:
+            logs = self.modelManager.compute_episodic_metrics(data_itr, training=training)
+        else:
+            raise ValueError()
+        return logs
+
+    def get_total_iterations(self, phase: util.TrainingPhase):
+        if self.gen_trainer_type[phase] == TrainerType.BatchTrainer:
+            total = sum(list(self.n_training_batches.values()))
+        elif self.gen_trainer_type[phase] == TrainerType.EpisodicTrainer:
+            total = sum(list(self.n_training_episodes.values()))
+        else:
+            raise ValueError()
+        return total
+
+    def get_nb_iterations(self, phase: util.TrainingPhase):
+        if self.gen_trainer_type[phase] == TrainerType.BatchTrainer:
+            nb = self.n_training_batches[phase]
+        elif self.gen_trainer_type[phase] == TrainerType.EpisodicTrainer:
+            nb = self.n_training_episodes[phase]
+        else:
+            raise ValueError()
+        return nb
+
+    def do_phase(self, epoch: int, phase: util.TrainingPhase):
+        self.progress.set_description_str(str(phase.value))
+
+        # reset the metrics
+        for _metric in self.running_metrics:
+            self.running_metrics[_metric].reset_states()
+
+        total_iterations = self.get_total_iterations(phase)
+
+        _data_itr = iter(self.data_generators[phase])
+        for episode_idx in range(self.get_nb_iterations(phase)):
+            # Optimize the model
+            # Forward & update gradients
+            if phase == util.TrainingPhase.TRAIN:
+                with tf.GradientTape() as tape:
+                    iteration_logs = self.get_logs(phase, _data_itr, training=True)
+
+                grads = tape.gradient(iteration_logs["loss"], self.model.trainable_variables)
+                self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+
+            elif phase == util.TrainingPhase.VAL:
+                iteration_logs = self.get_logs(phase, _data_itr, training=False)
+            else:
+                raise NotImplementedError(f"Training phase: {phase} not implemented")
+
+            # Track progress
+            self.update_running_metrics(iteration_logs)
+
+            # update progress
+            self.progress.update(1 / total_iterations)
+            self.progress.set_postfix_str(f"iteration: {episode_idx}/{self.get_nb_iterations(phase)} -> "
+                                          + ' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
+                                                       for k, v in self.running_metrics.items()]))
+
+        phase_logs = {k: v.result().numpy() for k, v in self.running_metrics.items()}
+        print(phase_logs)
+
+        return phase_logs
+
+
+def get_trainer(tr_type: TrainerType, *args, **kwargs) -> Trainer:
+    if tr_type == TrainerType.BatchTrainer:
+        trainer = Trainer(*args, **kwargs)
+    elif tr_type == TrainerType.EpisodicTrainer:
+        trainer = FewShotTrainer(*args, **kwargs)
+    elif tr_type == TrainerType.MixedTrainer:
+        trainer = MixedTrainer(*args, **kwargs)
+    else:
+        raise ValueError()
+    return trainer
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 from modules.datasets import MiniImageNetDataset
-from modules.trainers import FewShotTrainer, Trainer
+from modules.trainers import FewShotTrainer, Trainer, get_trainer
 from modules.modelManagers import NetworkManagerCallback
 import modules.util as util
 import config
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     print(util.get_str_repr_for_config(opt))
 
-    if opt["Batch_Trainer_parameters"] is not None:
+    if opt.get("Batch_Trainer_parameters", None) is not None:
         print("Batch training")
         batch_trainer = Trainer(
             model_manager=network_manager,
@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
         del batch_trainer
 
-    if opt["FewShot_Trainer_parameters"] is not None:
+    if opt.get("FewShot_Trainer_parameters", None) is not None:
         print("Episodic training")
         few_shot_trainer = FewShotTrainer(
             model_manager=network_manager,
@@ -68,5 +68,19 @@ if __name__ == '__main__':
         if opt["FewShot_Trainer_parameters"]["n_test"]:
             results = few_shot_trainer.test(n=opt["FewShot_Trainer_parameters"]["n_test"])
             util.save_test_results(opt, results)
+
+        del few_shot_trainer
+
+    if opt.get("Trainers_parameters", None) is not None:
+        assert isinstance(opt["Trainers_parameters"], list)
+        for i, params in enumerate(opt["Trainers_parameters"]):
+            print(f"{i}, {params['trainer_type'].name}")
+            trainer = get_trainer(
+                params["trainer_type"],
+                model_manager=network_manager,
+                dataset=mini_image_net,
+                network_callback=network_callback,
+                **params,
+            )
 
     util.plotHistory(network_manager.history, savename="training_curve_" + network_manager.name, savefig=not cerebus)

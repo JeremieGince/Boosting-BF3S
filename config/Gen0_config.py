@@ -1,5 +1,7 @@
 import tensorflow as tf
 from modules.modelManagers import FewShotImgLearner
+from modules import util
+from modules.trainers import TrainerType
 
 
 way = 20
@@ -39,40 +41,33 @@ config = {
         "learning_rate_decay_freq": 20,
     },
 
-    "Batch_Trainer_parameters": {
-        "n_train_batch": 100,
-        "n_val_batch": 0,
-        "n_epochs": 300,
-        "n_test": 0,
+    "Trainers_parameters": [
+        {
+            "trainer_type": TrainerType.MixedTrainer,
+            "gen_trainer_type": {
+                util.TrainingPhase.TRAIN: TrainerType.BatchTrainer,
+                util.TrainingPhase.VAL: TrainerType.EpisodicTrainer,
+                util.TrainingPhase.TEST: TrainerType.EpisodicTrainer,
+            },
+            "n_train_batch": 100,
+            "n_val_batch": 0,
 
-        # optimizer
-        "learning_rate": 1e-3,
-        # "optimizer_args": {
-        #     "momentum": 0.9,
-        #     "decay": 5e-4,
-        #     "nesterov": True,
-        # },
-        # "optimizer": tf.keras.optimizers.SGD,
-        "optimizer_args": {},
-        "optimizer": tf.keras.optimizers.Adam,
-    },
+            "n_way": way,
+            "n_test_way": t_way,
+            "n_shot": shot,
+            "n_test_shot": t_shot,
+            "n_query": 15,
+            "n_test_query": 5,
+            "n_train_episodes": 0,
+            "n_val_episodes": 100,
+            "n_test_episodes": 1,
+            "n_epochs": 300,
+            "n_test": 2_000,
 
-    "FewShot_Trainer_parameters": {
-        "n_way": way,
-        "n_test_way": t_way,
-        "n_shot": shot,
-        "n_test_shot": t_shot,
-        "n_query": 15,
-        "n_test_query": 5,
-        "n_train_episodes": 0,
-        "n_val_episodes": 0,
-        "n_test_episodes": 1,
-        "n_epochs": 0,
-        "n_test": 2_000,
-
-        # optimizer
-        "learning_rate": 1e-3,
-        "optimizer_args": {},
-        "optimizer": tf.keras.optimizers.Adam,
-    }
+            # optimizer
+            "learning_rate": 1e-3,
+            "optimizer_args": {},
+            "optimizer": tf.keras.optimizers.Adam,
+        }
+    ]
 }
