@@ -431,8 +431,9 @@ class MixedTrainer(FewShotTrainer):
         )
 
         super(MixedTrainer, self).__init__(model_manager, dataset, network_callback, network_callback_args, **kwargs)
-    
+
     def set_data_generators(self):
+        self.data_generators = {}
         for _p, _t in self.gen_trainer_type.items():
             if _t == TrainerType.BatchTrainer:
                 self.data_generators[_p] = self.dataset.get_batch_generator(_p, self.modelManager.output_form)
