@@ -1,0 +1,5 @@
+{
+   "loss": "[1.106103  1.3757918 1.1274629 ... 1.4253285 1.5942215 1.1038289]",
+   "accuracy": "[0.64 0.56 0.48 ... 0.56 0.6  0.6 ]",
+   "pprint": "\n--- Test results --- \n\n Model: Gen0-conv-4-64_5tway5tshot \nFew Shot params: \n \t Train: 20-way 5-shot \n\t Val: 5-way 5-shot \n\t Test: 5-way 5-shot \n \nTrain episodes: 0 \nTest episodes: 2000 \nMean accuracy: 50.95 \u00b1 0.62 % \n-----------------------------------"
+}
