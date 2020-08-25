@@ -183,7 +183,7 @@ class Trainer:
                                                        for k, v in self.running_metrics.items()]))
 
         phase_logs = {k: v.result().numpy() for k, v in self.running_metrics.items()}
-        print(phase_logs)
+        # print(phase_logs)
         return phase_logs
 
     def update_running_metrics(self, logs: dict):
