@@ -207,6 +207,9 @@ def get_str_repr_for_sec_config(config: dict, sec: str):
     if isinstance(sec_dict, dict):
         for param, value in sec_dict.items():
             _str += f"{param}: {value} \n"
+    elif isinstance(sec_dict, list) and sec == "Trainers_parameters":
+        for i, sub_sec in enumerate(sec_dict):
+            _str += get_str_repr_for_sec_config({str(i): sub_sec}, str(i))
     else:
         _str += f"{sec_dict} \n"
 
