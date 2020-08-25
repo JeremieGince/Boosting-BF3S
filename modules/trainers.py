@@ -460,14 +460,8 @@ class MixedTrainer(FewShotTrainer):
             raise ValueError()
         return logs
 
-    def get_total_iterations(self, phase: util.TrainingPhase):
-        if self.gen_trainer_type[phase] == TrainerType.BatchTrainer:
-            total = sum(list(self.n_training_batches.values()))
-        elif self.gen_trainer_type[phase] == TrainerType.EpisodicTrainer:
-            total = sum(list(self.n_training_episodes.values()))
-        else:
-            raise ValueError()
-        return total
+    def get_total_iterations(self):
+        return sum([self.get_nb_iterations(_p) for _p in self.TRAINING_PHASES])
 
     def get_nb_iterations(self, phase: util.TrainingPhase):
         if self.gen_trainer_type[phase] == TrainerType.BatchTrainer:
@@ -485,7 +479,7 @@ class MixedTrainer(FewShotTrainer):
         for _metric in self.running_metrics:
             self.running_metrics[_metric].reset_states()
 
-        total_iterations = self.get_total_iterations(phase)
+        total_iterations = self.get_total_iterations()
 
         _data_itr = iter(self.data_generators[phase])
         for episode_idx in range(self.get_nb_iterations(phase)):
