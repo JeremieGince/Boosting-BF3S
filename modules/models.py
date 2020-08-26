@@ -647,8 +647,7 @@ class Gen0(FewShot):
         self.n_cls_val = kwargs.get("n_cls_val", 16)
         self.nFeat = self.backbone.output_shape[-1]
 
-        self.cls_classifier_base = Dense(self.n_cls_base, input_shape=(self.nFeat, ), name="Dense-cls_classifier_base")
-        self.cls_classifier_val = Dense(self.n_cls_base, input_shape=(self.nFeat,), name="Dense-cls_classifier_val")
+        self.cls_classifier = Dense(self.n_cls_base, input_shape=(self.nFeat,), name="Dense-cls_classifier")
         self.rot_classifier = Dense(4, input_shape=(self.n_cls_base, ), name="Dense-rot_classifier")
 
         self.sl_p_rot = None
@@ -659,7 +658,7 @@ class Gen0(FewShot):
         x_rot, self.sl_y_rot, y_batch_r = self.rotate_x_batch(x_batch, [0, 1, 2, 3], y_batch)
 
         x_feats = self.backbone(x_rot)
-        p_cls = self.cls_classifier_base(x_feats)
+        p_cls = self.cls_classifier(x_feats)
         self.sl_p_rot = self.rot_classifier(p_cls)
 
         return y_batch_r, p_cls
@@ -718,6 +717,192 @@ class Gen0(FewShot):
         eq = tf.cast(
             tf.equal(
                 tf.cast(tf.argmax(y_pred, axis=-1), tf.int32),
+                tf.cast(tf.argmax(y, axis=-1), tf.int32)
+            ), tf.float32
+        )
+        acc_few = tf.reduce_mean(eq)
+        loss = loss_few + self.alpha * sl_loss
+        logs = {"loss": loss, "accuracy": acc_few, "sl_loss": sl_loss}
+        return logs
+
+    def compute_episodic_logs(self, y, y_pred) -> dict:
+        y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
+
+        # log softmax of calculated distances
+        log_p_y = tf.nn.log_softmax(y_pred, axis=-1)
+        log_p_y = tf.reshape(log_p_y, [self.n_class, self.n_query, -1])
+
+        loss = -tf.reduce_mean(
+            tf.reshape(tf.reduce_sum(tf.multiply(y_onehot, tf.cast(log_p_y, tf.float32)), axis=-1), [-1])
+        )
+        eq = tf.cast(
+            tf.equal(
+                tf.cast(tf.argmax(log_p_y, axis=-1), tf.int32),
+                tf.cast(y, tf.int32)
+            ), tf.float32
+        )
+        acc_few = tf.reduce_mean(eq)
+
+        logs = {"loss": loss, "accuracy": acc_few}
+        return logs
+
+    def compute_sl_loss(self):
+        raise NotImplementedError
+
+    def rotate_x_batch(self, x, rotations_k: list = None, y=None):
+        """
+        Execute the rotation of x given the rotations k.
+        :param x: batch data
+        :param rotations_k: The rotation to execute: k=0 -> 0 deg, k=1 -> 90 deg, k=2 -> 180 deg, k=3 -> 270 deg.
+        :param y: batch label
+        :return: The concatenation of [x^k for k in rotations_k], The labels of the rotations in one_hot vectors,
+                 and the y batch concatenate len(rotations_k) times if y is not None.
+        """
+        if rotations_k is None:
+            rotations_k = [0, 1, 2, 3]
+
+        *_batch_dim, _w, _h, _c = x.shape
+
+        _x_reshape = tf.reshape(x, shape=[np.prod(_batch_dim), _w, _h, _c])
+        x_r = tf.concat(
+            [
+                tf.image.rot90(_x_reshape, k)
+                for k in rotations_k
+            ],
+            axis=0
+        )
+        y_r = tf.concat(
+            [
+                tf.one_hot(
+                    tf.ones((_x_reshape.shape[0],), dtype=tf.int32)*k,
+                    len(rotations_k)
+                )
+                for k in rotations_k
+            ],
+            axis=0
+        )
+
+        if y is None:
+            return x_r, y_r
+        else:
+            y_batch_r = tf.concat(
+                [y for _ in range(len(rotations_k))],
+                axis=0
+            )
+            return x_r, y_r, y_batch_r
+
+
+class Gen1(FewShot):
+    """
+    Reference: https://arxiv.org/pdf/2006.09785.pdf
+    """
+
+    def __init__(self,
+                 # inputs parameters
+                 w, h, c,
+
+                 # Model parameters
+                 backbone_net: tf.keras.Model,
+
+                 # others
+                 **kwargs):
+        """
+        :param w (int): image width .
+        :param h (int): image height.
+        :param c (int): number of channels.
+        :param backbone_net (tf.keras.Model): the encoder model as backbone.
+        :param kwargs: {
+            :param alpha (float): float value between 0 and 1 used to scale the importance of the auxiliary loss.
+                                  -> loss = main_loss + alpha * aux_loss.
+            :param n_cls_base (int): number of base class.
+        }
+        """
+        super(Gen1, self).__init__(
+            w, h, c,
+            backbone_net,
+            None,
+            **kwargs
+        )
+
+        self.z_prototypes = None
+        self.query = None
+        self.n_class = None
+        self.n_support = None
+        self.n_query = None
+
+        self.n_cls_base = kwargs.get("n_cls_base", 64)
+        self.n_cls_val = kwargs.get("n_cls_val", 16)
+        self.nFeat = self.backbone.output_shape[-1]
+
+        self.cls_classifier = Dense(self.n_cls_base, input_shape=(self.nFeat,), name="Dense-cls_classifier")
+
+        self.sl_p_rot = None
+        self.sl_y_rot = None
+
+    def call(self, _inputs, training=None, mask=None):
+        x_batch, ids_batch, y_batch = _inputs
+        x_rot, self.sl_y_rot = self.rotate_x_batch(x_batch, [0, 2])
+
+        x_feats = self.backbone(x_rot)
+        p_cls = self.cls_classifier(x_feats)
+
+        p_cls, self.sl_p_rot = tf.split(p_cls, 2, axis=0)
+
+        return y_batch, p_cls
+
+    def set_support(self, support):
+        self.n_class = support.shape[0]
+        self.n_support = support.shape[1]
+        support_reshape = tf.reshape(support, [self.n_class * self.n_support,
+                                               self.w, self.h, self.c])
+        z = self.backbone(support_reshape)
+
+        self.z_prototypes = tf.reduce_mean(
+            tf.reshape(z, [self.n_class, self.n_support, z.shape[-1]])
+            , axis=1
+        )
+
+        if self.sl_model is not None:
+            self.sl_support_loss, _ = self.sl_model.compute_loss_by_inputs(support)
+
+    def apply_query(self, _query):
+        self.query = _query
+        self.n_query = _query.shape[1]
+        y, y_pred = self.apply_query_proto(self.query)
+        return y, y_pred
+
+    def apply_query_proto(self, query):
+        n_query = query.shape[1]
+        y = np.tile(np.arange(self.n_class)[:, np.newaxis], (1, n_query))
+        # y_onehot = tf.cast(tf.one_hot(y, self.n_class), tf.float32)
+
+        # correct indices of support samples (just natural order)
+        target_inds = tf.reshape(tf.range(self.n_class), [self.n_class, 1])
+        target_inds = tf.tile(target_inds, [1, n_query])
+
+        z_query = self.backbone(tf.reshape(query, [self.n_class * n_query,
+                                                   self.w, self.h, self.c]))
+
+        # Calculate distances between query and prototypes
+        dists = util.calc_euclidian_dists(z_query, self.z_prototypes)
+
+        p_y = -tf.cast(dists, tf.float32)
+        return y, p_y
+
+    def compute_batch_loss_acc(self, y, y_pred):
+        raise NotImplementedError
+
+    def compute_episodic_loss_acc(self, y, y_pred):
+        raise NotImplementedError
+
+    def compute_batch_logs(self, y, y_pred) -> dict:
+        p = y_pred
+        sl_loss = tf.losses.mse(p, self.sl_p_rot)
+
+        loss_few = tf.losses.categorical_crossentropy(y, p, from_logits=True)
+        eq = tf.cast(
+            tf.equal(
+                tf.cast(tf.argmax(p, axis=-1), tf.int32),
                 tf.cast(tf.argmax(y, axis=-1), tf.int32)
             ), tf.float32
         )
