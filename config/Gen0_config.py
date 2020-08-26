@@ -34,7 +34,7 @@ config = {
     "Network_callback_parameters": {
         "verbose": False,
         "save_freq": 1,
-        "early_stopping": False,
+        "early_stopping": True,
         "patience": 50,
         "learning_rate_decay_enabled": True,
         "learning_rate_decay_factor": 0.85,
