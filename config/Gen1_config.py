@@ -25,7 +25,7 @@ config = {
     "Model_parameters": {
         "name": f"Gen1-{backbone}"
                 f"_{t_way}tway{t_shot}tshot"
-                f"_test1",
+                f"_test2",
         "method": FewShotImgLearner.Method.Gen1,
         "alpha": 4.0,
         "sl_kwargs": None,
@@ -87,7 +87,7 @@ config = {
                 util.TrainingPhase.VAL: TrainerType.EpisodicTrainer,
                 util.TrainingPhase.TEST: TrainerType.EpisodicTrainer,
             },
-            "n_train_batch": 100,
+            "n_train_batch": 1,
             "n_val_batch": 0,
 
             "n_way": way,
@@ -100,7 +100,7 @@ config = {
             "n_val_episodes": 100,
             "n_test_episodes": 1,
 
-            "n_epochs": 300,
+            "n_epochs": 100,
             "n_test": 2_000,
 
             # optimizer
