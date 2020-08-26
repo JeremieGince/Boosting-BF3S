@@ -273,6 +273,9 @@ class NetworkModelManager:
     def call(self, *args, **kwargs):
         return self.model.call(*args, **kwargs)
 
+    def call_as_teacher(self, *args, **kwargs):
+        return self.model.call_as_teacher(*args, **kwargs)
+
     def set_support(self, support):
         return self.model.set_support(support)
 
@@ -295,7 +298,7 @@ class NetworkModelManager:
             sl_loss = itr_logs.get("sl_loss", 0.0)
             acc = itr_logs.get("accuracy", 0.0)
 
-            teacher_y, teacher_y_pred = self.teacher_net_manager.call(*args, **kwargs)
+            teacher_y, teacher_y_pred = self.teacher_net_manager.call_as_teacher(*args, **kwargs)
             teaching_loss = self.teacher_loss_fn(teacher_y_pred, y_pred)
             # print(y_pred, teacher_y_pred)
             # print(teaching_loss, sl_loss)

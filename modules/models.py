@@ -19,12 +19,22 @@ class BaseModel(tf.keras.Model):
     def call(self, inputs, training=None, mask=None):
         """
         Call for batch training
-        :param inputs: The inputs of the model (tf.Tensor)
+        :param inputs: The inputs of the model tuple(x_batch (tf.Tensor), ids_batch (tf.Tensor), y_batch (tf.Tensor))
         :param training: True if is in training phase else False (bool)
         :param mask: The mask of the data
         :return: y, logits (tuple)
         """
         raise NotImplementedError
+
+    def call_as_teacher(self, inputs, training=None, mask=None):
+        """
+        Teacher Call for batch training
+        :param inputs: The inputs of the model tuple(x_batch (tf.Tensor), ids_batch (tf.Tensor), y_batch (tf.Tensor))
+        :param training: True if is in training phase else False (bool)
+        :param mask: The mask of the data
+        :return: y, logits (tuple)
+        """
+        return self.call(inputs, training, mask)
 
     def compute_batch_logs(self, y, y_pred) -> dict:
         """
@@ -44,7 +54,7 @@ class SelfLearningModel(BaseModel):
     def call(self, inputs, training=None, mask=None):
         """
         Call for batch training
-        :param inputs: The inputs of the model (tf.Tensor)
+        :param inputs: The inputs of the model tuple(x_batch (tf.Tensor), ids_batch (tf.Tensor), y_batch (tf.Tensor))
         :param training: True if is in training phase else False (bool)
         :param mask: The mask of the data
         :return: y, logits (tuple)
@@ -117,7 +127,7 @@ class FewShot(BaseModel):
     def call(self, inputs, training=None, mask=None):
         """
         Call for batch training
-        :param inputs: The inputs of the model (tf.Tensor)
+        :param inputs: The inputs of the model tuple(x_batch (tf.Tensor), ids_batch (tf.Tensor), y_batch (tf.Tensor))
         :param training: True if is in training phase else False (bool)
         :param mask: The mask of the data
         :return: y, logits (tuple)
@@ -662,6 +672,14 @@ class Gen0(FewShot):
         self.sl_p_rot = self.rot_classifier(p_cls)
 
         return y_batch_r, p_cls
+
+    def call_as_teacher(self, inputs, training=None, mask=None):
+        x_batch, ids_batch, y_batch = inputs
+
+        x_feats = self.backbone(x_batch)
+        p_cls = self.cls_classifier(x_feats)
+
+        return y_batch, p_cls
 
     def set_support(self, support):
         self.n_class = support.shape[0]
