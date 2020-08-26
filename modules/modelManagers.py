@@ -125,9 +125,7 @@ class NetworkModelManager:
         if self.init_weights_path is not None and self.current_epoch <= 0:
             assert os.path.exists(self.init_weights_path), f"The path: {self.init_weights_path} doesn't exists"
             print(f"{self} is loading the weights from {self.init_weights_path}")
-            re = self.model.load_weights(self.init_weights_path, by_name=True),  # , skip_mismatch=True
-            print(f"The loading has returned: {re}")
-            assert 1 == 0
+            _ = self.model.load_weights(self.init_weights_path, by_name=True),  # , skip_mismatch=True
             self.save_weights()
 
     def summary(self) -> str:
