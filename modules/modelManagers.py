@@ -1,5 +1,6 @@
 import os
 import enum
+import warnings
 
 import numpy as np
 import tensorflow as tf
@@ -98,6 +99,8 @@ class NetworkModelManager:
         self.init_weights_path: str = kwargs.get("weights_path", None)
 
         # Teaching
+        self.is_teacher: bool = kwargs.get("is_teacher", False)
+
         self.teacher_net_manager: NetworkModelManager = kwargs.get("teacher", None)
         self.teacher_loss: str = kwargs.get("teacher_loss", "klb")
         self.teacher_t: float = kwargs.get("teacher_T", 4.0)
@@ -259,6 +262,8 @@ class NetworkModelManager:
         self.model = self.compile()
 
         if not os.path.exists(self.checkpoint_path):
+            if self.is_teacher:
+                warnings.warn(f"This teacher model has no initialized weights!")
             self.save_weights()
         return self.model
 
