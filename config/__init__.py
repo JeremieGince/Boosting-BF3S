@@ -32,6 +32,8 @@ def get_opt(config_name: str):
         from config.cosine_rotation_config import config as opt
     elif config_name == "Gen0":
         from config.Gen0_config import config as opt
+    elif config_name == "Gen1":
+        from config.Gen1_config import config as opt
     else:
         raise ValueError(_error_av_name)
 
