@@ -8,6 +8,7 @@ available_mth = {
     "cosine",
     "cosine_rot",
     "Gen0",
+    "Gen1",
 }
 
 
