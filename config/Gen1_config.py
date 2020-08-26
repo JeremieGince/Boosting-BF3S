@@ -33,7 +33,7 @@ config = {
         "n_cls_val": 16,
 
         # Teaching parameters
-        "teacher": teacher_config["model_type"](**teacher_config["Model_parameters"]),
+        "teacher": teacher_config["model_type"](is_teacher=True, **teacher_config["Model_parameters"]),
         "weights_path": "training_data/" + teacher_config["Model_parameters"]["name"]
                         + FewShotImgLearner.WEIGHTS_PATH_EXT,
         "teacher_loss": "klb",
