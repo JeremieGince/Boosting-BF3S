@@ -67,8 +67,14 @@ config = {
 
             # optimizer
             "learning_rate": 1e-3,
-            "optimizer_args": {},
-            "optimizer": tf.keras.optimizers.Adam,
+            "optimizer_args": {
+                "momentum": 0.9,
+                "decay": 5e-4,
+                "nesterov": True,
+            },
+            "optimizer": tf.keras.optimizers.SGD,
+            # "optimizer_args": {},
+            # "optimizer": tf.keras.optimizers.Adam,
         },
         {
             "trainer_type": TrainerType.EpisodicTrainer,
