@@ -25,9 +25,9 @@ config = {
     "Model_parameters": {
         "name": f"Gen1-{backbone}"
                 f"_{t_way}tway{t_shot}tshot"
-                f"_test0",
+                f"_test1",
         "method": FewShotImgLearner.Method.Gen1,
-        "alpha": 1.0,
+        "alpha": 4.0,
         "sl_kwargs": None,
         "n_cls_base": 64,
         "n_cls_val": 16,
@@ -38,7 +38,7 @@ config = {
                         + FewShotImgLearner.WEIGHTS_PATH_EXT,
         "teacher_loss": "klb",
         "teacher_T": 4.0,
-        "teacher_gamma": 1.0,
+        "teacher_gamma": 4.0,
     },
 
     "Network_callback_parameters": {
