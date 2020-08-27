@@ -104,9 +104,9 @@ class NetworkModelManager:
         self.teacher_net_manager: NetworkModelManager = kwargs.get("teacher", None)
         self.teacher_loss: str = kwargs.get("teacher_loss", "klb")
         self.teacher_t: float = kwargs.get("teacher_T", 4.0)
-        self.teacher_loss_fn = lambda p, p_t: tf.reduce_mean(
+        self.teacher_loss_fn = lambda p_t, p_s: tf.reduce_mean(
             tf.losses.kullback_leibler_divergence(
-                tf.nn.softmax(p / self.teacher_t), tf.nn.softmax(p_t / self.teacher_t)
+                tf.nn.softmax(p_t / self.teacher_t), tf.nn.softmax(p_s / self.teacher_t)
             )
         )
         self.teacher_gamma: float = kwargs.get("teacher_gamma", 1.0)
