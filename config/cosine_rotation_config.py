@@ -25,7 +25,8 @@ config = {
     "model_type": FewShotImgLearner,
     "Model_parameters": {
         "name": f"cosine_rot-{backbone}_"
-                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot",
+                f"{way}way{shot}shot_{t_way}tway{t_shot}tshot"
+                f"_mixedtr",
         "method": FewShotImgLearner.Method.CosineNet,
         "alpha": 1.0,
         "sl_boosted_type": util.SLBoostedType.ROT,
