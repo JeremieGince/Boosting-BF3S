@@ -259,6 +259,10 @@ class NetworkModelManager:
         self.model = self.build()
         self.model = self.compile()
 
+        if self.is_teacher:
+            for layer in self.model.layers:
+                layer.trainable = False
+
         if not os.path.exists(self.checkpoint_path):
             if self.is_teacher:
                 warnings.warn(f"This teacher model has no initialized weights!")
