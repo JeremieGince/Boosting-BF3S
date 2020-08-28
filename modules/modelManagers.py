@@ -312,7 +312,7 @@ class NetworkModelManager:
             acc = itr_logs.get("accuracy", 0.0)
 
             teacher_y, teacher_y_pred = self.teacher_net_manager.call_as_teacher(*args, **kwargs)
-            print("rd_mean: ", tf.reduce_mean(teacher_y_pred), tf.reduce_mean(y_pred))
+            print("rd_mean: ", tf.nn.softmax(teacher_y_pred/self.teacher_t), tf.nn.log_softmax(y_pred/self.teacher_t))
             teaching_loss = self.teacher_loss_fn(teacher_y_pred, y_pred)
             print("tloss: ", teaching_loss)
             # print(y_pred, teacher_y_pred)
