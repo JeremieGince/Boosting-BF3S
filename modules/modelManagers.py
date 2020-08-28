@@ -106,7 +106,7 @@ class NetworkModelManager:
         self.teacher_t: float = kwargs.get("teacher_T", 4.0)
         self.teacher_loss_fn = lambda p_t, p_s: tf.reduce_mean(
             tf.losses.kullback_leibler_divergence(
-                tf.nn.softmax(p_t / self.teacher_t), tf.nn.log_softmax(p_s / self.teacher_t)
+                tf.nn.softmax(p_t / self.teacher_t), tf.nn.softmax(p_s / self.teacher_t)
             ) * (self.teacher_t**2) / p_t.shape[0]
         )
         self.teacher_gamma: float = kwargs.get("teacher_gamma", 1.0)
@@ -312,7 +312,8 @@ class NetworkModelManager:
             acc = itr_logs.get("accuracy", 0.0)
 
             teacher_y, teacher_y_pred = self.teacher_net_manager.call_as_teacher(*args, **kwargs)
-            print("rd_mean: ", tf.nn.softmax(teacher_y_pred/self.teacher_t), tf.nn.log_softmax(y_pred/self.teacher_t))
+            print(teacher_y_pred.shape, y_pred.shape)
+            print("rd_mean: ", tf.nn.softmax(teacher_y_pred/self.teacher_t), tf.nn.softmax(y_pred/self.teacher_t))
             teaching_loss = self.teacher_loss_fn(teacher_y_pred, y_pred)
             print("tloss: ", teaching_loss)
             # print(y_pred, teacher_y_pred)
