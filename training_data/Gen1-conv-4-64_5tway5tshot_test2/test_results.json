@@ -1,7 +1,0 @@
-{
-   "loss": "[ 3.1645993e-07 -2.4341871e-09  3.8574893e-07 ... -3.0568252e-08\n  3.3166737e-07  3.2423065e-07]",
-   "accuracy": "[0.2  0.16 0.24 ... 0.2  0.2  0.32]",
-   "T_klb": "[ 3.1645993e-07 -2.4341871e-09  3.8574893e-07 ... -3.0568252e-08\n  3.3166737e-07  3.2423065e-07]",
-   "sl_loss": "[0. 0. 0. ... 0. 0. 0.]",
-   "pprint": "\n--- Test results --- \n\n Model: Gen1-conv-4-64_5tway5tshot_test2 \nFew Shot params: \n \t Train: 20-way 5-shot \n\t Val: 5-way 5-shot \n\t Test: 5-way 5-shot \n \nTrain episodes: 0 \nTest episodes: 2000 \nMean accuracy: 21.60 \u00b1 0.17 % \n-----------------------------------"
-}

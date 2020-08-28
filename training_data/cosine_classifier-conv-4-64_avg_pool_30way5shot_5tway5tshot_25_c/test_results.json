@@ -1,5 +1,0 @@
-{
-   "loss": "[1.009484   0.5926125  0.57470894 ... 0.8797951  0.75895643 0.5728171 ]",
-   "accuracy": "[0.56 0.76 0.76 ... 0.68 0.72 0.8 ]",
-   "pprint": "\n--- Test results --- \n\n Model: cosine_classifier-conv-4-64_avg_pool_30way5shot_5tway5tshot_25_c \nFew Shot params: \n \t Train: 30-way 5-shot \n\t Val: 5-way 5-shot \n\t Test: 5-way 5-shot \n \nTrain episodes: 60000 \nTest episodes: 2000 \nMean accuracy: 68.27 \u00b1 0.55 % \n-----------------------------------"
-}
