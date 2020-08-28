@@ -1,0 +1,5 @@
+{
+   "loss": "[1.9989089 1.3465586 1.9597987 ... 1.9180493 1.8238077 2.2532558]",
+   "accuracy": "[0.64 0.92 0.64 ... 0.68 0.72 0.44]",
+   "pprint": "\n--- Test results --- \n\n Model: cosine_rot-conv-4-64_20way5shot_5tway5tshot_mixedtr \nFew Shot params: \n \t Train: 20-way 5-shot \n\t Val: 5-way 5-shot \n\t Test: 5-way 5-shot \n \nTrain episodes: 60000 \nTest episodes: 2000 \nMean accuracy: 69.10 \u00b1 0.56 % \n-----------------------------------"
+}
