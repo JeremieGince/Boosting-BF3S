@@ -37,7 +37,7 @@ def plotHistory(history: dict, **kwargs) -> None:
     if kwargs.get("savefig", True):
         os.makedirs("Figures/", exist_ok=True)
         plt.savefig(f"Figures/{kwargs.get('savename', 'training_curve')}.png", dpi=500)
-    plt.show()
+    plt.show(block=kwargs.get("block", True))
 
 
 def load_pickle_data(file):
