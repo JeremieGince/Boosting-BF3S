@@ -8,7 +8,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         data_dir = sys.argv[1]
         cerebus = True
-        python_cmd = "/home/jeremie/GitHub/BoostingBF3S/anaconda3/envs/tensorflow_cuda-env/bin/python3"
+        python_cmd = "../../anaconda3/envs/tensorflow_cuda-env/bin/python3"
         print(os.getcwd())
     else:
         data_dir = r"D:\Datasets\mini-imagenet"
