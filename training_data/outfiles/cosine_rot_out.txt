@@ -1,0 +1,111 @@
+Physical devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+-------------------------
+Tensorflow_constants
+-------------------------
+seed: 7 
+
+-------------------------
+Dataset_parameters
+-------------------------
+data_dir: D:\Datasets\mini-imagenet 
+
+-------------------------
+model_type
+-------------------------
+<class 'modules.modelManagers.FewShotImgLearner'> 
+
+-------------------------
+Model_parameters
+-------------------------
+name: cosine_rot-conv-4-64_20way5shot_5tway5tshot_mixedtr 
+method: Method.CosineNet 
+alpha: 1.0 
+sl_boosted_type: SLBoostedType.ROT 
+sl_kwargs: {'hidden_neurons': None, 'classifier_type': 'cosine'} 
+n_cls_base: 64 
+n_cls_val: 16 
+
+-------------------------
+Network_callback_parameters
+-------------------------
+verbose: False 
+save_freq: 1 
+early_stopping: True 
+patience: 350 
+learning_rate_decay_enabled: False 
+learning_rate_decay_factor: 0.85 
+learning_rate_decay_freq: 20 
+
+-------------------------
+Trainers_parameters
+-------------------------
+-------------------------
+0
+-------------------------
+trainer_type: TrainerType.MixedTrainer 
+gen_trainer_type: {<TrainingPhase.TRAIN: 'train'>: <TrainerType.BatchTrainer: 0>, <TrainingPhase.VAL: 'val'>: <TrainerType.EpisodicTrainer: 1>, <TrainingPhase.TEST: 'test'>: <TrainerType.EpisodicTrainer: 1>} 
+n_train_batch: 100 
+n_val_batch: 0 
+n_way: 20 
+n_test_way: 5 
+n_shot: 5 
+n_test_shot: 5 
+n_query: 15 
+n_test_query: 5 
+n_train_episodes: 0 
+n_val_episodes: 100 
+n_epochs: 300 
+n_test: 2000 
+learning_rate: 0.001 
+optimizer_args: {'momentum': 0.9, 'decay': 0.0005, 'nesterov': True} 
+optimizer: <class 'tensorflow.python.keras.optimizer_v2.gradient_descent.SGD'> 
+
+-------------------------
+1
+-------------------------
+trainer_type: TrainerType.EpisodicTrainer 
+n_way: 20 
+n_test_way: 5 
+n_shot: 5 
+n_test_shot: 5 
+n_query: 15 
+n_test_query: 5 
+n_train_episodes: 100 
+n_val_episodes: 100 
+n_test_episodes: 1 
+n_epochs: 600 
+n_test: 2000 
+learning_rate: 0.001 
+optimizer_args: {'momentum': 0.9, 'decay': 0.0005, 'nesterov': True} 
+optimizer: <class 'tensorflow.python.keras.optimizer_v2.gradient_descent.SGD'> 
+
+
+
+0, MixedTrainer
+
+--- Test results --- 
+
+ Model: cosine_rot-conv-4-64_20way5shot_5tway5tshot_mixedtr 
+Few Shot params: 
+ 	 Train: 20-way 5-shot 
+	 Val: 5-way 5-shot 
+	 Test: 5-way 5-shot 
+ 
+Train epochs: 600 
+Test iterations: 2000 
+Mean accuracy: 69.41 ± 0.56 % 
+-----------------------------------
+1, EpisodicTrainer
+
+--- Test results --- 
+
+ Model: cosine_rot-conv-4-64_20way5shot_5tway5tshot_mixedtr 
+Few Shot params: 
+ 	 Train: 20-way 5-shot 
+	 Val: 5-way 5-shot 
+	 Test: 5-way 5-shot 
+ 
+Train episodes: 60000 
+Test episodes: 2000 
+Mean accuracy: 69.03 ± 0.55 % 
+-----------------------------------

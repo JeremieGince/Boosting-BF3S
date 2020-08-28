@@ -1,0 +1,71 @@
+Physical devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+-------------------------
+Tensorflow_constants
+-------------------------
+seed: 7 
+
+-------------------------
+Dataset_parameters
+-------------------------
+data_dir: D:\Datasets\mini-imagenet 
+
+-------------------------
+model_type
+-------------------------
+<class 'modules.modelManagers.FewShotImgLearner'> 
+
+-------------------------
+Model_parameters
+-------------------------
+name: prototypical_few_shot-conv-4-64_20way5shot_5tway5tshot 
+method: Method.PrototypicalNet 
+sl_kwargs: None 
+
+-------------------------
+Network_callback_parameters
+-------------------------
+verbose: False 
+save_freq: 1 
+early_stopping: True 
+patience: 50 
+learning_rate_decay_enabled: True 
+learning_rate_decay_factor: 0.85 
+learning_rate_decay_freq: 20 
+
+-------------------------
+Batch_Trainer_parameters
+-------------------------
+None 
+
+-------------------------
+FewShot_Trainer_parameters
+-------------------------
+n_way: 20 
+n_test_way: 5 
+n_shot: 5 
+n_test_shot: 5 
+n_query: 15 
+n_test_query: 5 
+n_train_episodes: 100 
+n_val_episodes: 100 
+n_epochs: 300 
+n_test: 2000 
+learning_rate: 0.001 
+optimizer_args: {} 
+optimizer: <class 'tensorflow.python.keras.optimizer_v2.adam.Adam'> 
+
+
+Episodic training
+
+--- Test results --- 
+
+ Model: prototypical_few_shot-conv-4-64_20way5shot_5tway5tshot 
+Few Shot params: 
+ 	 Train: 20-way 5-shot 
+	 Val: 5-way 5-shot 
+	 Test: 5-way 5-shot 
+ 
+Train episodes: 19100 
+Test episodes: 2000 
+Mean accuracy: 73.42 ± 0.53 % 
+-----------------------------------
