@@ -104,9 +104,11 @@ class NetworkModelManager:
         self.teacher_net_manager: NetworkModelManager = kwargs.get("teacher", None)
         self.teacher_loss: str = kwargs.get("teacher_loss", "klb")
         self.teacher_t: float = kwargs.get("teacher_T", 4.0)
+        self.epsilon = 1e-9
         self.teacher_loss_fn = lambda p_t, p_s: tf.reduce_mean(
             tf.losses.kullback_leibler_divergence(
-                tf.nn.softmax(p_t / self.teacher_t), tf.nn.softmax(p_s / self.teacher_t)
+                tf.nn.softmax(tf.clip_by_value(p_t, self.epsilon, 1.0) / self.teacher_t),
+                tf.nn.softmax(tf.clip_by_value(p_s, self.epsilon, 1.0) / self.teacher_t)
             ) * (self.teacher_t**2) / p_t.shape[0]
         )
         self.teacher_gamma: float = kwargs.get("teacher_gamma", 1.0)
@@ -317,7 +319,7 @@ class NetworkModelManager:
             for v in tf.nn.softmax(teacher_y_pred/self.teacher_t).numpy():
                 print(v)
             print("\n")
-            for v in tf.keras.backend.clip(tf.nn.softmax(y_pred/self.teacher_t).numpy(), tf.keras.backend.epsilon(), 1):
+            for v in tf.clip_by_value(tf.nn.softmax(y_pred/self.teacher_t).numpy(), self.epsilon, 1.0):
                 print(v)
             teaching_loss = self.teacher_loss_fn(teacher_y_pred, y_pred)
             print("tloss: ", teaching_loss)
