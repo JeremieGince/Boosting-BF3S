@@ -9,7 +9,6 @@ if __name__ == '__main__':
         data_dir = sys.argv[1]
         cerebus = True
         python_cmd = "../../anaconda3/envs/tensorflow_cuda-env/bin/python3"
-        print(os.getcwd())
     else:
         data_dir = r"D:\Datasets\mini-imagenet"
 
