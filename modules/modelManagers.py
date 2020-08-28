@@ -140,8 +140,9 @@ class NetworkModelManager:
         :return: None
         """
         assert self.model is not None
-        for layer in self.model.layers:
-            print(layer.name, [x.shape for x in layer.weights])
+        # print(self.name)
+        # for layer in self.model.layers:
+        #     print(layer.name, [x.shape for x in layer.weights])
         self.model.load_weights(self.checkpoint_path, by_name=True)
 
     def save_weights(self):

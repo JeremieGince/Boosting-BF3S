@@ -855,6 +855,7 @@ class Gen1(FewShot):
         self.nFeat = self.backbone.output_shape[-1]
 
         self.cls_classifier = Dense(self.n_cls_base, input_shape=(self.nFeat,), name="Dense-cls_classifier")
+        self.cls_classifier.build(input_shape=(self.nFeat, ))
 
         self.sl_p_rot = None
         self.sl_y_rot = None

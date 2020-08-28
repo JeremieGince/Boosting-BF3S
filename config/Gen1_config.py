@@ -25,7 +25,7 @@ config = {
     "Model_parameters": {
         "name": f"Gen1-{backbone}"
                 f"_{t_way}tway{t_shot}tshot"
-                f"_test2",
+                f"_test3",
         "method": FewShotImgLearner.Method.Gen1,
         "alpha": 4.0,
         "sl_kwargs": None,

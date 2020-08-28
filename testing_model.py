@@ -17,7 +17,7 @@ if __name__ == '__main__':
         cerebus = True
     else:
         data_dir = r"D:\Datasets\mini-imagenet"
-        _mth = "Gen0"
+        _mth = "Gen1"
 
     opt = config.get_opt(_mth)
     opt["Dataset_parameters"]["data_dir"] = data_dir
