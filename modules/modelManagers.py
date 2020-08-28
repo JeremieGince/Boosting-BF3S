@@ -140,7 +140,7 @@ class NetworkModelManager:
         :return: None
         """
         assert self.model is not None
-        self.model.load_weights(self.checkpoint_path)
+        self.model.load_weights(self.checkpoint_path, by_name=True)
 
     def save_weights(self):
         """
