@@ -16,5 +16,5 @@ if __name__ == '__main__':
     mth_list = ["proto", "proto_rot", "cosine", "cosine_rot", "Gen0", "Gen1"]
     for mth in mth_list:
         with open(f'{outfiles_path}/{mth}_out.txt', 'w') as f:
-            process = subprocess.call(['python', 'testing_model.py', data_dir, mth], stdout=f)
+            process = subprocess.call(['python', f'{os.getcwd()}/testing_model.py', data_dir, mth], stdout=f)
             print(process)
