@@ -316,8 +316,9 @@ class NetworkModelManager:
             print("rd_mean: ")
             for v in tf.nn.softmax(teacher_y_pred/self.teacher_t).numpy():
                 print(v)
-            
-            print(tf.nn.softmax(y_pred/self.teacher_t))
+
+            for v in tf.nn.softmax(y_pred/self.teacher_t).numpy():
+                print(v)
             teaching_loss = self.teacher_loss_fn(teacher_y_pred, y_pred)
             print("tloss: ", teaching_loss)
             # print(y_pred, teacher_y_pred)
