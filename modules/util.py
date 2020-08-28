@@ -232,7 +232,7 @@ def save_test_results(opt, logs):
     json.dump(logs, open(path + "/test_results.json", "w"), skipkeys=True, indent=3, default=str)
 
 
-def mean_confidence_interval(data, confidence=0.95):
+def mean_confidence_interval(data, confidence: float = 0.95) -> tuple:
     """
     Compute a confidence interval from sample data
     Reference: https://stackoverflow.com/questions/15033511/compute-a-confidence-interval-from-sample-data

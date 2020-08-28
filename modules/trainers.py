@@ -79,7 +79,8 @@ class Trainer:
         }
 
         # Setting metrics
-        self.running_metrics = {_metric: tf.keras.metrics.Mean() for _metric in self.modelManager.metrics}
+        self.running_metrics = {_metric: tf.keras.metrics.Mean(name=str(_metric))
+                                for _metric in self.modelManager.metrics}
 
         # progress bar
         self.progress = None
@@ -234,7 +235,8 @@ class Trainer:
             self.progress.set_postfix_str(' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
                                                       for k, v in self.running_metrics.items()]))
             for k in phase_logs:
-                phase_logs[k].append(self.running_metrics[k].result().numpy())
+                if k in batch_logs:
+                    phase_logs[k].append(batch_logs[k])
 
         self.progress.close()
         phase_logs = {k: np.array(v) for k, v in phase_logs.items()}
@@ -385,7 +387,8 @@ class FewShotTrainer(Trainer):
                 self.progress.set_postfix_str(' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
                                                          for k, v in self.running_metrics.items()]))
                 for k in phase_logs:
-                    phase_logs[k].append(self.running_metrics[k].result().numpy())
+                    if k in episode_logs:
+                        phase_logs[k].append(episode_logs[k])
 
         self.progress.close()
         phase_logs = {k: np.array(v) for k, v in phase_logs.items()}
@@ -508,6 +511,57 @@ class MixedTrainer(FewShotTrainer):
 
         phase_logs = {k: v.result().numpy() for k, v in self.running_metrics.items()}
         print(phase_logs)
+
+        return phase_logs
+
+    def test(self, n=1) -> dict:
+        if self.load_on_start:
+            self.modelManager.load()
+
+        phase_logs = {k: [] for k, v in self.running_metrics.items()}
+
+        phase = util.TrainingPhase.TEST
+
+        self.progress = tqdm(
+            ascii=True,
+            iterable=range(n),
+            unit="iteration",
+        )
+        self.progress.set_description_str("Test")
+
+        _data_itr = iter(self.data_generators[phase])
+        # reset the metrics
+        for _metric in self.running_metrics:
+            self.running_metrics[_metric].reset_states()
+
+        for i in range(n):
+            iteration_logs = self.get_logs(phase, _data_itr, training=False)
+
+            # Track progress
+            self.update_running_metrics(iteration_logs)
+
+            # update progress
+            self.progress.update(1)
+            self.progress.set_postfix_str(' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
+                                                      for k, v in self.running_metrics.items()]))
+            for m in phase_logs:
+                if m in iteration_logs:
+                    phase_logs[m].append(iteration_logs[m])
+
+        self.progress.close()
+        phase_logs = {k: np.array(v) for k, v in phase_logs.items()}
+        m, h = util.mean_confidence_interval(phase_logs.get("accuracy"), 0.95)
+
+        pprint = "\n--- Test results --- \n" \
+                 f"{self.config}" \
+                 f"Train epochs: {self.modelManager.current_epoch} \n" \
+                 f"Test iterations: {n} \n" \
+                 f"Mean accuracy: {m * 100:.2f} " \
+                 f"± {h * 100:.2f} % \n" \
+                 f"{'-' * 35}"
+        phase_logs["pprint"] = pprint
+        if self.verbose:
+            print(pprint)
 
         return phase_logs
 
