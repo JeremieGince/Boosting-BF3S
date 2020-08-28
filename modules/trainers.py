@@ -278,7 +278,7 @@ class FewShotTrainer(Trainer):
         self.n_test_query = kwargs.get("n_test_query", self.n_query)
         self.n_train_episodes = kwargs.get("n_train_episodes", 10)
         self.n_val_episodes = kwargs.get("n_val_episodes", 10)
-        self.n_test_episodes = kwargs.get("n_test_episodes", 600)
+        self.n_test_episodes = kwargs.get("n_test_episodes", 1)
 
         self.n_training_episodes = {
             util.TrainingPhase.TRAIN: self.n_train_episodes,
@@ -366,7 +366,7 @@ class FewShotTrainer(Trainer):
 
         self.progress = tqdm(
             ascii=True,
-            iterable=range(self.n_test_episodes*n),
+            iterable=range(n),
             unit="episode",
         )
         self.progress.set_description_str("Test")
@@ -396,7 +396,7 @@ class FewShotTrainer(Trainer):
         pprint = f"\n--- Test results --- \n" \
                   f"{self.config}" \
                   f"Train episodes: {self.n_train_episodes * self.modelManager.current_epoch} \n" \
-                  f"Test episodes: {n*self.n_test_episodes} \n" \
+                  f"Test episodes: {n} \n" \
                   f"Mean accuracy: {m * 100:.2f} " \
                   f"± {h * 100:.2f} % \n" \
                   f"{'-'*35}"

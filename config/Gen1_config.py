@@ -98,7 +98,6 @@ config = {
             "n_test_query": 5,
             "n_train_episodes": 0,
             "n_val_episodes": 100,
-            "n_test_episodes": 1,
 
             "n_epochs": 100,
             "n_test": 2_000,
