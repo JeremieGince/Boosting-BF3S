@@ -3,7 +3,7 @@
       "seed": 7
    },
    "Dataset_parameters": {
-      "data_dir": "../../Datasets/mini-imagenet/"
+      "data_dir": "D:\\Datasets\\mini-imagenet"
    },
    "model_type": "<class 'modules.modelManagers.FewShotImgLearner'>",
    "Model_parameters": {
@@ -39,7 +39,6 @@
          "n_test_query": 5,
          "n_train_episodes": 0,
          "n_val_episodes": 100,
-         "n_test_episodes": 1,
          "n_epochs": 300,
          "n_test": 2000,
          "learning_rate": 0.001,
