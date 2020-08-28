@@ -567,6 +567,13 @@ class MixedTrainer(FewShotTrainer):
 
 
 def get_trainer(tr_type: TrainerType, *args, **kwargs) -> Trainer:
+    """
+    Get the trainer instance given the trainer type.
+    :param tr_type:
+    :param args:
+    :param kwargs:
+    :return:
+    """
     if tr_type == TrainerType.BatchTrainer:
         trainer = Trainer(*args, **kwargs)
     elif tr_type == TrainerType.EpisodicTrainer:
