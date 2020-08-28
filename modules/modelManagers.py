@@ -314,15 +314,15 @@ class NetworkModelManager:
             acc = itr_logs.get("accuracy", 0.0)
 
             teacher_y, teacher_y_pred = self.teacher_net_manager.call_as_teacher(*args, **kwargs)
-            print(teacher_y_pred.shape, y_pred.shape)
-            print("rd_mean: ")
-            for v in tf.nn.softmax(teacher_y_pred/self.teacher_t).numpy():
-                print(v)
-            print("\n")
-            for v in tf.clip_by_value(tf.nn.softmax(y_pred/self.teacher_t).numpy(), self.epsilon, 1.0):
-                print(v)
+            # print(teacher_y_pred.shape, y_pred.shape)
+            # print("rd_mean: ")
+            # for v in tf.nn.softmax(teacher_y_pred/self.teacher_t).numpy():
+            #     print(v)
+            # print("\n")
+            # for v in tf.clip_by_value(tf.nn.softmax(y_pred/self.teacher_t).numpy(), self.epsilon, 1.0):
+            #     print(v)
             teaching_loss = self.teacher_loss_fn(teacher_y_pred, y_pred)
-            print("tloss: ", teaching_loss)
+            # print("tloss: ", teaching_loss)
             # print(y_pred, teacher_y_pred)
             # print(teaching_loss, sl_loss)
             loss = teaching_loss + self.teacher_gamma * sl_loss
