@@ -158,8 +158,7 @@ class Trainer:
         self.progress.set_description_str(str(phase.value))
 
         # reset the metrics
-        for _metric in self.running_metrics:
-            self.running_metrics[_metric].reset_states()
+        self.reset_running_metrics()
 
         total_episodes = sum(list(self.n_training_batches.values()))
 
@@ -203,6 +202,10 @@ class Trainer:
             if m in logs:
                 self.running_metrics[m].update_state(logs[m])
 
+    def reset_running_metrics(self):
+        for _metric in self.running_metrics:
+            self.running_metrics[_metric].reset_states()
+
     def test(self, n=1) -> dict:
         if self.load_on_start:
             self.modelManager.load()
@@ -220,8 +223,7 @@ class Trainer:
 
         _data_itr = iter(self.data_generators[phase])
         # reset the metrics
-        for _metric in self.running_metrics:
-            self.running_metrics[_metric].reset_states()
+        self.reset_running_metrics()
 
         for i in range(n):
             _inputs = next(_data_itr)
@@ -320,8 +322,7 @@ class FewShotTrainer(Trainer):
         self.progress.set_description_str(str(phase.value))
 
         # reset the metrics
-        for _metric in self.running_metrics:
-            self.running_metrics[_metric].reset_states()
+        self.reset_running_metrics()
 
         total_episodes = sum(list(self.n_training_episodes.values()))
 
@@ -370,25 +371,23 @@ class FewShotTrainer(Trainer):
         )
         self.progress.set_description_str("Test")
 
+        _data_itr = iter(self.data_generators[phase])
+        # reset the metrics
+        self.reset_running_metrics()
+
         for i in range(n):
-            # reset the metrics
-            for _metric in self.running_metrics:
-                self.running_metrics[_metric].reset_states()
+            episode_logs = self.modelManager.compute_episodic_metrics(_data_itr, training=False)
 
-            _data_itr = iter(self.data_generators[phase])
-            for episode_idx in range(self.n_test_episodes):
-                episode_logs = self.modelManager.compute_episodic_metrics(_data_itr, training=False)
+            # Track progress
+            self.update_running_metrics(episode_logs)
 
-                # Track progress
-                self.update_running_metrics(episode_logs)
-
-                # update progress
-                self.progress.update(1)
-                self.progress.set_postfix_str(' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
-                                                         for k, v in self.running_metrics.items()]))
-                for k in phase_logs:
-                    if k in episode_logs:
-                        phase_logs[k].append(episode_logs[k])
+            # update progress
+            self.progress.update(1)
+            self.progress.set_postfix_str(' - '.join([f"{phase.value}_{k}: {v.result():.3f}"
+                                                     for k, v in self.running_metrics.items()]))
+            for k in phase_logs:
+                if k in episode_logs:
+                    phase_logs[k].append(episode_logs[k])
 
         self.progress.close()
         phase_logs = {k: np.array(v) for k, v in phase_logs.items()}
@@ -479,8 +478,7 @@ class MixedTrainer(FewShotTrainer):
         self.progress.set_description_str(str(phase.value))
 
         # reset the metrics
-        for _metric in self.running_metrics:
-            self.running_metrics[_metric].reset_states()
+        self.reset_running_metrics()
 
         total_iterations = self.get_total_iterations()
 
@@ -531,8 +529,7 @@ class MixedTrainer(FewShotTrainer):
 
         _data_itr = iter(self.data_generators[phase])
         # reset the metrics
-        for _metric in self.running_metrics:
-            self.running_metrics[_metric].reset_states()
+        self.reset_running_metrics()
 
         for i in range(n):
             iteration_logs = self.get_logs(phase, _data_itr, training=False)
@@ -569,10 +566,10 @@ class MixedTrainer(FewShotTrainer):
 def get_trainer(tr_type: TrainerType, *args, **kwargs) -> Trainer:
     """
     Get the Trainer instance given the trainer type.
-    :param tr_type:
-    :param args:
-    :param kwargs:
-    :return:
+    :param tr_type: The trainer type (TrainerType)
+    :param args: Trainer args
+    :param kwargs:Trainer kwargs
+    :return: the trainer instance (Trainer)
     """
     if tr_type == TrainerType.BatchTrainer:
         trainer = Trainer(*args, **kwargs)
