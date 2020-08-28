@@ -316,8 +316,8 @@ class NetworkModelManager:
             print("rd_mean: ")
             for v in tf.nn.softmax(teacher_y_pred/self.teacher_t).numpy():
                 print(v)
-
-            for v in tf.nn.softmax(y_pred/self.teacher_t).numpy():
+            print("\n")
+            for v in tf.python.keras.backend.clip(tf.nn.softmax(y_pred/self.teacher_t).numpy(), tf.python.keras.backend.epsilon(), 1):
                 print(v)
             teaching_loss = self.teacher_loss_fn(teacher_y_pred, y_pred)
             print("tloss: ", teaching_loss)
