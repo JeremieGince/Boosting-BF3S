@@ -509,6 +509,7 @@ class MixedTrainer(FewShotTrainer):
 
         phase_logs = {k: v.result().numpy() for k, v in self.running_metrics.items()}
         print(phase_logs)
+        assert 1 == 0
 
         return phase_logs
 
