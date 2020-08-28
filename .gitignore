@@ -221,3 +221,4 @@ modules.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm+all
 /training_data/Tests/
+/training_data/0Final/
