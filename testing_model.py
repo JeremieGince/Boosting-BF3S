@@ -17,7 +17,7 @@ if __name__ == '__main__':
         cerebus = True
     else:
         data_dir = r"D:\Datasets\mini-imagenet"
-        _mth = "cosine"
+        _mth = "Gen0"
 
     opt = config.get_opt(_mth)
     opt["Dataset_parameters"]["data_dir"] = data_dir
@@ -85,4 +85,9 @@ if __name__ == '__main__':
 
             del trainer
 
-    util.plotHistory(network_manager.history, savename="training_curve_" + network_manager.name, savefig=not cerebus)
+    util.plotHistory(
+        network_manager.history,
+        savename="training_curve_" + network_manager.name,
+        savefig=not cerebus,
+        block=not cerebus,
+    )
