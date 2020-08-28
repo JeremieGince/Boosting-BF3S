@@ -1,13 +1,8 @@
 from modules.datasets import MiniImageNetDataset
-from modules.trainers import FewShotTrainer, Trainer
+from modules.trainers import FewShotTrainer, Trainer, get_trainer
 from modules.modelManagers import NetworkManagerCallback
 import modules.util as util
-from config.prototypical_config import config as proto_config
-from config.prototypical_rotation_config import config as proto_rot_config
-from config.cosine_config import config as cosine_config
-from config.cosine_rotation_config import config as cosine_rot_config
-from config.selflearning_rot_config import config as sl_rot_config
-from config.selflearning_rotFeat_config import config as sl_rot_feat_config
+import config
 
 import tensorflow as tf
 import numpy as np
@@ -15,15 +10,6 @@ import sys
 
 
 if __name__ == '__main__':
-    _mth_to_config = {
-        "sl_rot": sl_rot_config,
-        "sl_rotFeat": sl_rot_feat_config,
-        "proto": proto_config,
-        "proto_rot": proto_rot_config,
-        "cosine": cosine_config,
-        "cosine_rot": cosine_rot_config,
-    }
-
     cerebus = False
     if len(sys.argv) > 1:
         data_dir = sys.argv[1]
@@ -32,12 +18,9 @@ if __name__ == '__main__':
     else:
         data_dir = r"D:\Datasets\mini-imagenet"
         _mth = "cosine"
-        cerebus = True
-    assert _mth in _mth_to_config, f"Method {_mth} is not recognized"
 
-    opt = _mth_to_config[_mth]
+    opt = config.get_opt(_mth)
     opt["Dataset_parameters"]["data_dir"] = data_dir
-    opt["Model_parameters"]["name"] = opt["Model_parameters"]["name"]+f"{'_c' if cerebus else ''}"
 
     util.save_opt(opt)
 
@@ -82,5 +65,23 @@ if __name__ == '__main__':
         if opt["FewShot_Trainer_parameters"]["n_test"]:
             results = few_shot_trainer.test(n=opt["FewShot_Trainer_parameters"]["n_test"])
             util.save_test_results(opt, results)
+        del few_shot_trainer
+
+    if opt.get("Trainers_parameters", None) is not None:
+        assert isinstance(opt["Trainers_parameters"], list)
+        for i, params in enumerate(opt["Trainers_parameters"]):
+            print(f"{i}, {params['trainer_type'].name}")
+            trainer = get_trainer(
+                params["trainer_type"],
+                model_manager=network_manager,
+                dataset=mini_image_net,
+                network_callback=network_callback,
+                **params,
+            )
+            if params["n_test"]:
+                results = trainer.test(n=params["n_test"])
+                util.save_test_results(opt, results)
+
+            del trainer
 
     util.plotHistory(network_manager.history, savename="training_curve_" + network_manager.name, savefig=not cerebus)
