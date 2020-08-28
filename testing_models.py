@@ -3,10 +3,12 @@ import subprocess
 import os
 
 if __name__ == '__main__':
+    python_cmd = "python"
     cerebus = False
     if len(sys.argv) > 1:
         data_dir = sys.argv[1]
         cerebus = True
+        python_cmd = "~/anaconda3/envs/tensorflow_cuda-env/bin/python3"
     else:
         data_dir = r"D:\Datasets\mini-imagenet"
 
@@ -16,5 +18,5 @@ if __name__ == '__main__':
     mth_list = ["proto", "proto_rot", "cosine", "cosine_rot", "Gen0", "Gen1"]
     for mth in mth_list:
         with open(f'{outfiles_path}/{mth}_out.txt', 'w') as f:
-            process = subprocess.call(['python', f'{os.getcwd()}/testing_model.py', data_dir, mth], stdout=f)
+            process = subprocess.call([python_cmd, 'testing_model.py', data_dir, mth], stdout=f)
             print(process)
