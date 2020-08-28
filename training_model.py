@@ -89,4 +89,9 @@ if __name__ == '__main__':
 
             del trainer
 
-    util.plotHistory(network_manager.history, savename="training_curve_" + network_manager.name, savefig=not cerebus)
+    util.plotHistory(
+        network_manager.history,
+        savename="training_curve_" + network_manager.name,
+        savefig=not cerebus,
+        block=not cerebus,
+    )

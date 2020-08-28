@@ -657,8 +657,10 @@ class Gen0(FewShot):
         self.n_cls_val = kwargs.get("n_cls_val", 16)
         self.nFeat = self.backbone.output_shape[-1]
 
-        self.cls_classifier = Dense(self.n_cls_base, input_shape=(self.nFeat,), name="Dense-cls_classifier")
+        self.cls_classifier = Dense(self.n_cls_base, input_shape=(self.nFeat, ), name="Dense-cls_classifier")
+        self.cls_classifier.build(input_shape=(self.nFeat, ))
         self.rot_classifier = Dense(4, input_shape=(self.n_cls_base, ), name="Dense-rot_classifier")
+        self.rot_classifier.build(input_shape=(self.n_cls_base, ))
 
         self.sl_p_rot = None
         self.sl_y_rot = None
