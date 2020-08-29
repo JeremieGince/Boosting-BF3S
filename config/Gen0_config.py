@@ -23,7 +23,8 @@ config = {
     "model_type": FewShotImgLearner,
     "Model_parameters": {
         "name": f"Gen0-{backbone}"
-                f"_{t_way}tway{t_shot}tshot",
+                f"_{t_way}tway{t_shot}tshot"
+                f"_97",
         "method": FewShotImgLearner.Method.Gen0,
         "alpha": 1.0,
         "sl_kwargs": None,
@@ -61,7 +62,7 @@ config = {
             "n_train_episodes": 0,
             "n_val_episodes": 100,
 
-            "n_epochs": 300,
+            "n_epochs": 97,
             "n_test": 2_000,
 
             # optimizer
