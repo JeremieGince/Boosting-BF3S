@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import warnings
 from tensorflow.keras.layers import Flatten, Dense, BatchNormalization, Softmax, ReLU, Input
 from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.models import Sequential
@@ -1003,7 +1004,14 @@ class Gen1(FewShot):
 #  Self-learning models
 #####################################################################################################
 
-def get_sl_model(backbone, sl_boosted_type: util.SLBoostedType, **kwargs):
+def get_sl_model(backbone: tf.keras.Model, sl_boosted_type: util.SLBoostedType, **kwargs) -> SelfLearningModel:
+    """
+    Function used to get the self-learning model instance given the SL type.
+    :param backbone: The backbone instance. (tf.keras.Model)
+    :param sl_boosted_type: The type of the self-learning model. (SLBoostedType)
+    :param kwargs: the parameters of the self-learning model.
+    :return:
+    """
     sl_type_to_cls = {
         util.SLBoostedType.ROT: SLRotationModel,
         util.SLBoostedType.ROT_FEAT: SLDistFeatModel,
@@ -1117,6 +1125,7 @@ class SLRotationModel(SelfLearningModel):
 class SLDistFeatModel(SelfLearningModel):
     def __init__(self, backbone, **kwargs):
         super(SLDistFeatModel, self).__init__(backbone)
+        warnings.warn(DeprecationWarning)
 
         self.nb_k = min([kwargs.get("nb_k", 2), 2])
         self.possible_k = range(self.nb_k)

@@ -299,10 +299,10 @@ class NetworkModelManager:
 
     def compute_batch_metrics(self, *args, **kwargs) -> dict:
         """
-        Used to compute the metrics of the current call
-        :param args:
-        :param kwargs:
-        :return:
+        Used to compute the batch metrics of the current call
+        :param args: args of the model's call method
+        :param kwargs: kwargs of the model's call method
+        :return: batch logs (dict)
         """
         y, y_pred = self.model.call(*args, **kwargs)
 
@@ -331,6 +331,13 @@ class NetworkModelManager:
         return logs
 
     def compute_episodic_metrics(self, data_itr, *args, **kwargs):
+        """
+        Used to compute the episodic metrics of the current call
+        :param data_itr: the data iterator.
+        :param args: args of the model's call method
+        :param kwargs: kwargs of the model's call method
+        :return: batch logs (dict)
+        """
         _support = next(data_itr)
         self.model.set_support(_support)
         if self.teacher_net_manager is not None:

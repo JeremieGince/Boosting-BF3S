@@ -21,15 +21,25 @@ class Trainer:
                  model_manager: NetworkModelManager,
                  dataset: DatasetBase,
                  network_callback: NetworkManagerCallback = None,
-                 network_callback_args=None,
+                 network_callback_args: dict = None,
                  **kwargs):
         """
+        The constructor of Trainer.
 
-        :param model_manager:
-        :param dataset:
-        :param network_callback:
-        :param network_callback_args:
-        :param kwargs:
+        :param model_manager: The current model manager instance. (NetworkModelManager)
+        :param dataset: The current dataset instance. (DatasetBase)
+        :param network_callback: The network callback. (NetworkManagerCallback)
+        :param network_callback_args: The network callback args if the parameter network_callback is None. (dict)
+        :param kwargs: {
+            :param use_saving_callback: True to use saving callback else False. (bool)
+            :param load_on_start: True to call the load method of the model manager on start else False. (bool)
+            :param verbose: True to display stats else False. (bool)
+            :param learning_rate: the learning rate if the model manager doesn't have an optimizer. (float)
+            :param  optimizer_args: optimizer args for the default optimizer. (dict)
+            :param optimizer: The optimizer type if the model manager doesn't have an optimizer.
+            :param n_train_batch: The number of train batch. (int)
+            :param n_val_batch: the number of validation batch. (int)
+        }
         """
 
         # setting phases
@@ -85,14 +95,24 @@ class Trainer:
         # progress bar
         self.progress = None
 
-    def set_data_generators(self):
+    def set_data_generators(self) -> dict:
+        """
+        initiate the data generators
+        :return: The data generators. (dict)
+        """
         self.data_generators = {
             _p: self.dataset.get_batch_generator(_p, self.modelManager.output_form)
             for _p in util.TrainingPhase
         }
         return self.data_generators
 
-    def train(self, epochs=1, final_testing=True):
+    def train(self, epochs: int = 1, final_testing: bool = True) -> dict:
+        """
+        Train the model of the model manager.
+        :param epochs: number of training epochs. (int)
+        :param final_testing: True to test at the end of the training else False. (bool)
+        :return: The train history
+        """
         if self.load_on_start:
             self.modelManager.load()
 
@@ -140,7 +160,12 @@ class Trainer:
 
         return history
 
-    def do_epoch(self, epoch: int):
+    def do_epoch(self, epoch: int) -> dict:
+        """
+        Do an epoch of training
+        :param epoch: The epoch index. (int)
+        :return: The logs of the epoch
+        """
         # calling the callback
         self.network_callback.on_epoch_begin(epoch)
 
@@ -154,7 +179,13 @@ class Trainer:
 
         return logs
 
-    def do_phase(self, epoch: int, phase: util.TrainingPhase):
+    def do_phase(self, epoch: int, phase: util.TrainingPhase) -> dict:
+        """
+        Do a phase of an epoch.
+        :param epoch: The current epoch. (int)
+        :param phase: The current phase. (TrainingPhase)
+        :return: The logs of the phase. (dict)
+        """
         self.progress.set_description_str(str(phase.value))
 
         # reset the metrics
@@ -206,7 +237,12 @@ class Trainer:
         for _metric in self.running_metrics:
             self.running_metrics[_metric].reset_states()
 
-    def test(self, n=1) -> dict:
+    def test(self, n: int = 1) -> dict:
+        """
+        Execute the testing phase.
+        :param n: Number of testing iteration. (int)
+        :return: The logs of the phase. (dict)
+        """
         if self.load_on_start:
             self.modelManager.load()
 
@@ -263,12 +299,40 @@ class Trainer:
 
 
 class FewShotTrainer(Trainer):
+    """
+    The Trainer object for Few-shot learning.
+    """
     def __init__(self,
                  model_manager: NetworkModelManager,
                  dataset: DatasetBase,
                  network_callback: NetworkManagerCallback = None,
                  network_callback_args=None,
                  **kwargs):
+        """
+        The constructor of FewShotTrainer.
+
+        :param model_manager: The current model manager instance. (NetworkModelManager)
+        :param dataset: The current dataset instance. (DatasetBase)
+        :param network_callback: The network callback. (NetworkManagerCallback)
+        :param network_callback_args: The network callback args if the parameter network_callback is None. (dict)
+        :param kwargs: {
+            :param use_saving_callback: True to use saving callback else False. (bool)
+            :param load_on_start: True to call the load method of the model manager on start else False. (bool)
+            :param verbose: True to display stats else False. (bool)
+            :param learning_rate: the learning rate if the model manager doesn't have an optimizer. (float)
+            :param  optimizer_args: optimizer args for the default optimizer. (dict)
+            :param optimizer: The optimizer type if the model manager doesn't have an optimizer.
+            :param n_way: number of training class for one episode. (int)
+            :param n_shot: number of training data per class for one episode. (int)
+            :param n_test_way: number of test class for one episode. (int)
+            :param n_test_shot: number of test data per class for one episode. (int)
+            :param n_query: number of training query per class for one episode. (int)
+            :param n_test_query:number of test query per class for one episode. (int)
+            :param n_train_episodes: The number of train episode. (int)
+            :param n_val_episodes: the number of validation episode. (int)
+            :param n_test_episodes: the number of test episode. (int) (Depreciated)
+        }
+        """
         self.n_way = kwargs.get("n_way", 30)
         self.n_test_way = kwargs.get("n_test_way", self.n_way)
         self.n_shot = kwargs.get("n_shot", 5)
@@ -417,12 +481,44 @@ class FewShotTrainer(Trainer):
 
 
 class MixedTrainer(FewShotTrainer):
+    """
+    Generalization of FewShotTrainer and Trainer. Can be used for episodic training, batch training and both.
+    """
     def __init__(self, model_manager: NetworkModelManager,
                  dataset: DatasetBase,
                  network_callback: NetworkManagerCallback = None,
                  network_callback_args=None,
                  **kwargs):
+        """
+        The constructor of MixedTrainer.
 
+        :param model_manager: The current model manager instance. (NetworkModelManager)
+        :param dataset: The current dataset instance. (DatasetBase)
+        :param network_callback: The network callback. (NetworkManagerCallback)
+        :param network_callback_args: The network callback args if the parameter network_callback is None. (dict)
+        :param kwargs: {
+            :param use_saving_callback: True to use saving callback else False. (bool)
+            :param load_on_start: True to call the load method of the model manager on start else False. (bool)
+            :param verbose: True to display stats else False. (bool)
+            :param learning_rate: the learning rate if the model manager doesn't have an optimizer. (float)
+            :param  optimizer_args: optimizer args for the default optimizer. (dict)
+            :param optimizer: The optimizer type if the model manager doesn't have an optimizer.
+            :param n_way: number of training class for one episode. (int)
+            :param n_shot: number of training data per class for one episode. (int)
+            :param n_test_way: number of test class for one episode. (int)
+            :param n_test_shot: number of test data per class for one episode. (int)
+            :param n_query: number of training query per class for one episode. (int)
+            :param n_test_query:number of test query per class for one episode. (int)
+            :param n_train_episodes: The number of train episode. (int)
+            :param n_val_episodes: the number of validation episode. (int)
+            :param n_train_batch: The number of train batch. (int)
+            :param n_val_batch: the number of validation batch. (int)
+            :param gen_trainer_type: A dictionary of the training phase with the training type. (dict)
+                                     ex: {util.TrainingPhase.TRAIN: TrainerType.BatchTrainer,
+                                          util.TrainingPhase.VAL: TrainerType.EpisodicTrainer,
+                                          util.TrainingPhase.TEST: TrainerType.EpisodicTrainer}
+        }
+        """
         self.gen_trainer_type = kwargs.get(
             "gen_trainer_type",
             {
@@ -453,7 +549,14 @@ class MixedTrainer(FewShotTrainer):
                 raise ValueError()
         return self.data_generators
 
-    def get_logs(self, phase: util.TrainingPhase, data_itr, training=True):
+    def get_logs(self, phase: util.TrainingPhase, data_itr, training: bool = True) -> dict:
+        """
+        Get the logs of the current phase.
+        :param phase: The current phase. (TrainingPhase)
+        :param data_itr: The data iterator.
+        :param training: True if the model is in training phase else False. (bool)
+        :return: The logs of the current phase. (dict)
+        """
         if self.gen_trainer_type[phase] == TrainerType.BatchTrainer:
             logs = self.modelManager.compute_batch_metrics(next(data_itr), training=training)
         elif self.gen_trainer_type[phase] == TrainerType.EpisodicTrainer:
@@ -462,10 +565,19 @@ class MixedTrainer(FewShotTrainer):
             raise ValueError()
         return logs
 
-    def get_total_iterations(self):
+    def get_total_iterations(self) -> int:
+        """
+        Get the total of training iteration and validation iteration for all phases.
+        :return: training iteration + validation iteration. (int)
+        """
         return sum([self.get_nb_iterations(_p) for _p in self.TRAINING_PHASES])
 
-    def get_nb_iterations(self, phase: util.TrainingPhase):
+    def get_nb_iterations(self, phase: util.TrainingPhase) -> int:
+        """
+        Get the total of iteration for the current phase.
+        :param phase: The current phase. (TrainingPhase)
+        :return: The number of iteration. (int)
+        """
         if self.gen_trainer_type[phase] == TrainerType.BatchTrainer:
             nb = self.n_training_batches[phase]
         elif self.gen_trainer_type[phase] == TrainerType.EpisodicTrainer:

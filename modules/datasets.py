@@ -16,11 +16,22 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class DatasetBase:
+    """
+    Base Dataset, used to manage data
+    """
     def __init__(
             self,
-            data_dir,
+            data_dir: str,
             **kwargs
     ):
+        """
+        Constructor of BaseDataset
+        :param data_dir: The path to the root of the dataset. (str)
+        :param kwargs: {
+            :param name: name of the current dataset (str)
+            :param labels: labels of the current dataset.
+        }
+        """
         self.name = kwargs.get("name", "Dataset")
         self.data_dir = data_dir
 
@@ -63,6 +74,7 @@ class DatasetBase:
         return self._batch_size
 
     def get_output_size(self, output_form: OutputForm = OutputForm.LABEL):
+        warnings.warn(DeprecationWarning)
         if output_form == OutputForm.LABEL:
             return len(self.labels)
 
@@ -70,24 +82,53 @@ class DatasetBase:
             return len(self.possible_rotations)
 
     def get_batch_generator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
+        """
+        Get the batch generator of the current dataset.
+        :param phase: The training phase of the generator. (TrainingPhase)
+        :param output_form: The output_form og the generator. (OutputForm)
+        :param kwargs: other parameters
+        :return: a data generator
+        """
         raise NotImplementedError()
 
     def get_iterator(self, phase: TrainingPhase, output_form: OutputForm = OutputForm.LABEL, **kwargs):
+        warnings.warn(DeprecationWarning)
         return iter(self.get_batch_generator(phase, output_form, **kwargs))
 
     def get_few_shot_generator(self, _n_way, _n_shot, _n_query,
                                phase: TrainingPhase,
                                output_form: OutputForm = OutputForm.FS,
                                **kwargs):
+        """
+        Get the episodic generator of the current dataset.
+        :param _n_way: number of base class. (int)
+        :param _n_shot: number of images per class. (int)
+        :param _n_query: number of query per class. (int)
+        :param phase: The training phase of the generator. (TrainingPhase)
+        :param output_form: The output_form og the generator. (OutputForm)
+        :param kwargs: other parameters
+        :return: a data generator
+        """
         warnings.warn("get_few_shot_generator not Implemented yet")
 
-    def preprocess_input(self, _input):
+    def preprocess_input(self, _input) -> np.ndarray:
+        """
+        Root method to preprocess the current set of data
+        :param _input: The current data (np.ndarray)
+        :return: The preprocess data (np.ndarray)
+        """
         return _input
 
-    def augment_data(self, _data):
+    def augment_data(self, _data) -> np.ndarray:
+        """
+        Root method to augment the current set of data
+        :param _data: The current data (np.ndarray)
+        :return: The augmented data (np.ndarray)
+        """
         return _data
 
     def _add_labels(self, _labels):
+        warnings.warn(DeprecationWarning)
         self.labels = set.union(self.labels, set(_labels))
         self._labels_to_one_hot = {
             lbl: util.c_idx2one_hot(idx, np.zeros(len(self.labels), dtype=int))
@@ -99,9 +140,15 @@ class DatasetBase:
         }
 
     def get_label_from_one_hot(self, one_hot):
+        warnings.warn(DeprecationWarning)
         return self._one_hot_to_labels.get(str(np.array(one_hot)))
 
     def plot_samples(self, nb_samples=5):
+        """
+        Method use to show samples of the current dataset
+        :param nb_samples: number of sample to show (int)
+        :return: None
+        """
         nb_samples = min(nb_samples, self._batch_size)
 
         _itr = self.get_iterator(TrainingPhase.TRAIN, OutputForm.LABEL, shuffle=True)
@@ -123,11 +170,21 @@ class DatasetBase:
 
 
 class MiniImageNetDataset(DatasetBase):
+    """
+    The dataset class to manage Mini-ImageNet
+    """
     def __init__(
             self,
             data_dir=MINIIMAGETNET_DIR,
             **kwargs
     ):
+        """
+        The constructor of MiniImageNetDataset
+        :param data_dir: The current path to the root of the dataset
+        :param kwargs: {
+            :param name: name of the dataset. (str)
+        }
+        """
         super().__init__(data_dir, **kwargs)
 
         self.name = kwargs.get("name", "MiniImageNet Dataset")
@@ -264,6 +321,7 @@ class MiniImageNetDataset(DatasetBase):
 
     def __iter__(self):
         # TODO: change ça pour pas que ce soit juste train
+        warnings.warn(DeprecationWarning)
         return self.get_batch_generator(TrainingPhase.TRAIN)
 
 
